@@ -537,6 +537,27 @@ if (hasGsapScroll) {
     });
   };
 
+  const forceViewportToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'auto',
+      });
+    });
+
+    window.setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'auto',
+      });
+    }, 90);
+  };
+
   const playScan = () => {
     if (!scanOverlay) {
       return Promise.resolve();
@@ -745,6 +766,25 @@ if (hasGsapScroll) {
     shellStateMap.set(shell, state);
     resetShellState(state);
   });
+
+  const clearActiveStageState = ({ resetFirstShell = false } = {}) => {
+    stageShells.forEach((shell) => {
+      shell.classList.remove('stage-active');
+    });
+    activeShell = null;
+
+    if (!resetFirstShell || !firstStageShell) {
+      return;
+    }
+
+    const firstState = shellStateMap.get(firstStageShell);
+    if (!firstState) {
+      return;
+    }
+
+    resetShellState(firstState);
+    firstState.revealed = false;
+  };
 
   const activateShell = async (shell, { force = false } = {}) => {
     const state = shellStateMap.get(shell);
@@ -982,21 +1022,24 @@ if (hasGsapScroll) {
         if (currentState) {
           await playReverseScanHide(currentState);
           resetShellState(currentState);
+          currentState.revealed = false;
         }
-        stageShells.forEach((shell) => shell.classList.remove('stage-active'));
-        activeShell = null;
+        clearActiveStageState({ resetFirstShell: true });
         lastStageSwitchAt = performance.now();
-        const targetTop = isTopNavigation ? 0 : Math.max(0, targetSection.offsetTop);
-        window.scrollTo({
-          top: targetTop,
-          behavior: 'auto',
-        });
         if (isTopNavigation) {
-          window.requestAnimationFrame(() => {
-            window.scrollTo({
-              top: 0,
-              behavior: 'auto',
-            });
+          forceViewportToTop();
+          window.setTimeout(() => {
+            const firstSectionTop = firstStageSection ? firstStageSection.offsetTop : 0;
+            const scrollTop = window.scrollY || window.pageYOffset;
+            if (scrollTop <= Math.max(24, firstSectionTop - 8)) {
+              clearActiveStageState({ resetFirstShell: true });
+              forceViewportToTop();
+            }
+          }, 180);
+        } else {
+          window.scrollTo({
+            top: Math.max(0, targetSection.offsetTop),
+            behavior: 'auto',
           });
         }
         return;
@@ -1039,7 +1082,7 @@ if (hasGsapScroll) {
       targetState.revealed = true;
       lastStageSwitchAt = performance.now();
     } finally {
-      suppressScrollTriggerUntil = performance.now() + (isTopNavigation ? 820 : 420);
+      suppressScrollTriggerUntil = performance.now() + (isTopNavigation ? 1200 : 420);
       setStageScrollLock(false);
       isProgrammaticNavigation = false;
     }
