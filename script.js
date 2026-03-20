@@ -953,6 +953,16 @@ if (hasGsapScroll) {
 
     const currentIndex = getCurrentShellIndex();
     if (currentIndex < 0) {
+      if (firstStageShell && activeShell === firstStageShell) {
+        const firstState = shellStateMap.get(firstStageShell);
+        if (firstState) {
+          resetShellState(firstState);
+          firstState.revealed = false;
+        }
+        stageShells.forEach((shell) => shell.classList.remove('stage-active'));
+        activeShell = null;
+        return;
+      }
       if (firstStageShell && activeShell && activeShell !== firstStageShell) {
         activateShell(firstStageShell, { force: true });
       }
