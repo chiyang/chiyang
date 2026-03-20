@@ -6,7 +6,6 @@ const reveals = document.querySelectorAll('.reveal');
 const stageShells = document.querySelectorAll('.stage-shell');
 const progressBar = document.querySelector('.scroll-progress');
 const header = document.querySelector('.site-header');
-const yearNode = document.getElementById('year');
 const cursorGlow = document.querySelector('.cursor-glow');
 const parallaxNodes = document.querySelectorAll('[data-parallax]');
 const scanOverlay = document.querySelector('.scan-overlay');
@@ -83,7 +82,7 @@ const i18nDict = {
     contactHobbies: '<strong>興趣：</strong>跑步、羽球、單車',
     contactEmail: '<strong>Email：</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
     contactOffice: '<strong>辦公室：</strong>桃園市龜山區文化一路 259 號（示意）',
-    footerName: '楊崎 Chi Yang',
+    footerCredit: '本網站由 OpenAI Codex 協作生成',
     footerBackToTop: '回到頂部',
   },
   en: {
@@ -145,7 +144,7 @@ const i18nDict = {
     contactHobbies: '<strong>Interests:</strong> Running, Badminton, Cycling',
     contactEmail: '<strong>Email:</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
     contactOffice: '<strong>Office:</strong> No. 259, Wenhua 1st Rd., Guishan Dist., Taoyuan (sample)',
-    footerName: 'Chi Yang',
+    footerCredit: 'This site was created with OpenAI Codex assistance',
     footerBackToTop: 'Back to top',
   },
 };
@@ -325,10 +324,6 @@ const closeNavMenu = () => {
   navToggle.setAttribute('aria-expanded', 'false');
   updateNavToggleAria(false);
 };
-
-if (yearNode) {
-  yearNode.textContent = new Date().getFullYear();
-}
 
 sections.forEach((section) => {
   const nodes = section.querySelectorAll('.reveal');
