@@ -452,6 +452,13 @@ if (hasGsapScroll) {
   let isStartupSyncPending = true;
   let pendingNavigation = Promise.resolve();
   let hideScrollHint = () => {};
+  let lastObservedScrollTop = window.scrollY || window.pageYOffset || 0;
+  let lastScrollDirection = 0;
+
+  const DOWNWARD_STAGE_TRIGGER_RATIO = 0.82;
+  const UPWARD_STAGE_TRIGGER_RATIO = 0.15;
+  const DEFAULT_STAGE_TRIGGER_RATIO = 0.42;
+  const FIRST_STAGE_EARLY_SCROLL_RATIO = 0.4;
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
   const isEditableTarget = (target) => {
@@ -496,6 +503,43 @@ if (hasGsapScroll) {
   };
 
   const isTopNavigationGuardActive = () => performance.now() < topNavigationGuardUntil;
+
+  const updateScrollDirection = () => {
+    const currentTop = window.scrollY || window.pageYOffset || 0;
+    const delta = currentTop - lastObservedScrollTop;
+
+    if (Math.abs(delta) > 1) {
+      lastScrollDirection = delta > 0 ? 1 : -1;
+    }
+
+    lastObservedScrollTop = currentTop;
+  };
+
+  const getStageViewportAnchorRatio = () => {
+    if (lastScrollDirection > 0) {
+      return DOWNWARD_STAGE_TRIGGER_RATIO;
+    }
+    if (lastScrollDirection < 0) {
+      return UPWARD_STAGE_TRIGGER_RATIO;
+    }
+    return DEFAULT_STAGE_TRIGGER_RATIO;
+  };
+
+  const getFirstStageActivationTop = () => {
+    if (!firstStageSection) {
+      return Infinity;
+    }
+
+    const viewportAnchor = window.innerHeight * getStageViewportAnchorRatio();
+    const anchorActivationTop = Math.max(0, firstStageSection.offsetTop - viewportAnchor);
+
+    if (!topSection || lastScrollDirection <= 0) {
+      return anchorActivationTop;
+    }
+
+    const earlyHeroActivationTop = Math.max(0, window.innerHeight * FIRST_STAGE_EARLY_SCROLL_RATIO);
+    return Math.min(anchorActivationTop, earlyHeroActivationTop);
+  };
 
   const setTopNavigationGuard = (durationMs = 0) => {
     window.clearTimeout(topNavigationGuardTimer);
@@ -869,7 +913,8 @@ if (hasGsapScroll) {
 
     if (!force && firstStageShell && firstStageSection && shell === firstStageShell) {
       const scrollTop = window.scrollY || window.pageYOffset;
-      if (scrollTop < firstStageSection.offsetTop - 8) {
+      const firstStageActivationTop = getFirstStageActivationTop();
+      if (scrollTop < firstStageActivationTop - 8) {
         return;
       }
     }
@@ -961,10 +1006,21 @@ if (hasGsapScroll) {
       return null;
     }
 
-    const viewportAnchor = window.innerHeight * 0.42;
+    const viewportAnchor = window.innerHeight * getStageViewportAnchorRatio();
     const firstSection = stageShellList[0].closest('section');
     if (firstSection) {
       const firstRect = firstSection.getBoundingClientRect();
+      const scrollTop = window.scrollY || window.pageYOffset;
+      const firstStageActivationTop = getFirstStageActivationTop();
+      const shouldPreActivateFirstStage =
+        lastScrollDirection > 0 &&
+        scrollTop >= firstStageActivationTop - 8 &&
+        firstRect.top > viewportAnchor + 8;
+
+      if (shouldPreActivateFirstStage) {
+        return stageShellList[0];
+      }
+
       if (firstRect.top > viewportAnchor + 8) {
         return null;
       }
@@ -1258,6 +1314,8 @@ if (hasGsapScroll) {
 
   let syncShellRaf = null;
   const requestShellSyncFromScroll = () => {
+    updateScrollDirection();
+
     if (isTopNavigationGuardActive()) {
       return;
     }
