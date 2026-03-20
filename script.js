@@ -11,6 +11,7 @@ const cursorGlow = document.querySelector('.cursor-glow');
 const parallaxNodes = document.querySelectorAll('[data-parallax]');
 const scanOverlay = document.querySelector('.scan-overlay');
 const topLinks = document.querySelectorAll('a[href="#top"]');
+const heroCtaLinks = document.querySelectorAll('.hero-actions a[href^="#"]');
 const themeToggle = document.querySelector('.theme-toggle');
 const langToggle = document.querySelector('.lang-toggle');
 const i18nTextNodes = document.querySelectorAll('[data-i18n]');
@@ -39,7 +40,7 @@ const i18nDict = {
     themeSwitchToDark: '深色',
     themeSwitchToLight: '淺色',
     heroSystemTag: '研究節點 01',
-    heroNameMain: '楊崎 <span>Chi Yang</span>',
+    heroNameMain: '楊崎 <span>學術檔案</span>',
     heroTitle: '助理研究員',
     heroTagline: '以人工智慧重塑蛋白體與質譜分析流程，建立高可重現、可轉譯的研究管線。',
     heroBtnWorks: '瀏覽研究成果',
@@ -514,19 +515,19 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanOverlay, {
           x: scanEndX,
-          duration: 0.58,
+          duration: 0.56,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
-          duration: 0.14,
+          duration: 0.12,
           ease: 'none',
-        }, 0.44)
+        }, 0.42)
         .to(scanOverlay, {
           autoAlpha: 0,
           duration: 0.08,
           ease: 'none',
-        }, 0.54);
+        }, 0.48);
     });
   };
 
@@ -633,14 +634,14 @@ if (hasGsapScroll) {
     })
       .to(state.shell, {
         clipPath: 'inset(0 0% 0 0)',
-        duration: 0.58,
+        duration: 0.56,
         ease: 'none',
       }, 0)
       .to(state.shell, {
         opacity: 1,
         y: 0,
         filter: 'brightness(1) saturate(1)',
-        duration: 0.62,
+        duration: 0.6,
       }, 0.02)
       .to(state.horizontalDiag, {
         scaleX: 1,
@@ -718,14 +719,23 @@ if (hasGsapScroll) {
 
     stageShells.forEach((node) => {
       node.classList.toggle('stage-active', node === shell);
+      if (node !== shell) {
+        const inactiveState = shellStateMap.get(node);
+        if (inactiveState && inactiveState.revealed) {
+          hideVisitedShellContentAtStart(inactiveState);
+        }
+      }
     });
+
+    if (state.revealed) {
+      hideVisitedShellContentAtStart(state);
+    }
 
     alignShellToViewport(shell);
     setStageScrollLock(true);
 
     try {
       if (state.revealed) {
-        hideVisitedShellContentAtStart(state);
         await playReverseScanHide(state);
         resetShellState(state);
       }
@@ -835,6 +845,12 @@ if (hasGsapScroll) {
       resetShellState(targetState);
       stageShells.forEach((shell) => {
         shell.classList.toggle('stage-active', shell === targetShell);
+        if (shell !== targetShell) {
+          const inactiveState = shellStateMap.get(shell);
+          if (inactiveState && inactiveState.revealed) {
+            hideVisitedShellContentAtStart(inactiveState);
+          }
+        }
       });
       activeShell = targetShell;
 
@@ -860,20 +876,29 @@ if (hasGsapScroll) {
       .then(() => runCrossStageNavigation(targetSection));
   };
 
-  navLinks.forEach((link) => {
-    const hash = link.getAttribute('href');
+  const resolveHashTarget = (hash) => {
     if (!hash || !hash.startsWith('#')) {
+      return null;
+    }
+    if (hash === '#top') {
+      return topTarget;
+    }
+    return document.querySelector(`main ${hash}`) || document.querySelector(hash);
+  };
+
+  const stageNavigationLinks = [
+    ...Array.from(navLinks),
+    ...Array.from(heroCtaLinks),
+  ];
+
+  stageNavigationLinks.forEach((link) => {
+    const hash = link.getAttribute('href');
+    const targetSection = resolveHashTarget(hash);
+    if (!targetSection) {
       return;
     }
 
     link.addEventListener('click', (event) => {
-      const targetSection = hash === '#top'
-        ? topTarget
-        : document.querySelector(`main ${hash}`);
-      if (!targetSection) {
-        return;
-      }
-
       event.preventDefault();
       closeNavMenu();
       queueCrossStageNavigation(targetSection);
