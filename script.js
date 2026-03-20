@@ -110,7 +110,11 @@ if (hasGsapScroll) {
   const scanCore = scanOverlay ? scanOverlay.querySelector('.scan-core') : null;
   const scanLayers = scanCore ? [scanCore] : [];
   const stageShellList = Array.from(stageShells);
+  const topAnchor = document.getElementById('top');
+  const firstStageShell = stageShellList[0] || null;
+  const firstStageSection = firstStageShell ? firstStageShell.closest('section') : null;
   const topSection = document.querySelector('main section#hero') || sections[0] || null;
+  const topTarget = topAnchor || topSection;
 
   const scanStartX = '-2vw';
   const scanEndX = '102vw';
@@ -120,6 +124,7 @@ if (hasGsapScroll) {
   let lastStageSwitchAt = -Infinity;
   let isStageTransitioning = false;
   let isProgrammaticNavigation = false;
+  let suppressScrollTriggerUntil = -Infinity;
   let pendingNavigation = Promise.resolve();
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
@@ -391,6 +396,13 @@ if (hasGsapScroll) {
       return;
     }
 
+    if (!force && firstStageShell && firstStageSection && shell === firstStageShell) {
+      const scrollTop = window.scrollY || window.pageYOffset;
+      if (scrollTop < firstStageSection.offsetTop - 8) {
+        return;
+      }
+    }
+
     const now = performance.now();
     if (activeShell === shell && !force) {
       return;
@@ -471,6 +483,7 @@ if (hasGsapScroll) {
       return;
     }
 
+    const isTopNavigation = targetSection === topTarget || targetSection === topAnchor;
     const targetShell = targetSection.querySelector('.stage-shell');
     const currentIndex = getCurrentShellIndex();
     const currentShell = currentIndex >= 0 ? stageShellList[currentIndex] : null;
@@ -489,10 +502,19 @@ if (hasGsapScroll) {
         stageShells.forEach((shell) => shell.classList.remove('stage-active'));
         activeShell = null;
         lastStageSwitchAt = performance.now();
+        const targetTop = isTopNavigation ? 0 : Math.max(0, targetSection.offsetTop);
         window.scrollTo({
-          top: Math.max(0, targetSection.offsetTop),
+          top: targetTop,
           behavior: 'auto',
         });
+        if (isTopNavigation) {
+          window.requestAnimationFrame(() => {
+            window.scrollTo({
+              top: 0,
+              behavior: 'auto',
+            });
+          });
+        }
         return;
       }
 
@@ -527,6 +549,7 @@ if (hasGsapScroll) {
       targetState.revealed = true;
       lastStageSwitchAt = performance.now();
     } finally {
+      suppressScrollTriggerUntil = performance.now() + (isTopNavigation ? 820 : 420);
       setStageScrollLock(false);
       isProgrammaticNavigation = false;
     }
@@ -546,7 +569,7 @@ if (hasGsapScroll) {
 
     link.addEventListener('click', (event) => {
       const targetSection = hash === '#top'
-        ? topSection
+        ? topTarget
         : document.querySelector(`main ${hash}`);
       if (!targetSection) {
         return;
@@ -560,13 +583,13 @@ if (hasGsapScroll) {
 
   topLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
-      if (!topSection) {
+      if (!topTarget) {
         return;
       }
 
       event.preventDefault();
       closeNavMenu();
-      queueCrossStageNavigation(topSection);
+      queueCrossStageNavigation(topTarget);
     });
   });
 
@@ -576,12 +599,18 @@ if (hasGsapScroll) {
       start: 'top 48%',
       end: 'bottom 48%',
       onEnter: () => {
+        if (performance.now() < suppressScrollTriggerUntil) {
+          return;
+        }
         if (isProgrammaticNavigation) {
           return;
         }
         activateShell(shell);
       },
       onEnterBack: () => {
+        if (performance.now() < suppressScrollTriggerUntil) {
+          return;
+        }
         if (isProgrammaticNavigation) {
           return;
         }
