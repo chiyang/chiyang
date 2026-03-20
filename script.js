@@ -593,13 +593,89 @@ if (hasGsapScroll) {
     });
   });
 
+  const isCompactViewport = () => window.matchMedia('(max-width: 1024px)').matches;
+  const getStageTriggerStart = () => (isCompactViewport() ? 'top 72%' : 'top 48%');
+  const getStageTriggerEnd = () => (isCompactViewport() ? 'bottom 28%' : 'bottom 48%');
+
+  const ensureCurrentShellVisible = () => {
+    if (isProgrammaticNavigation || isStageTransitioning) {
+      return;
+    }
+
+    const currentIndex = getCurrentShellIndex();
+    if (currentIndex < 0) {
+      return;
+    }
+
+    const shell = stageShellList[currentIndex];
+    if (!shell || shell === activeShell) {
+      return;
+    }
+
+    activateShell(shell);
+  };
+
+  let syncShellRaf = null;
+  let postSuppressSyncTimer = null;
+  const requestShellSyncFromScroll = () => {
+    if (syncShellRaf !== null) {
+      return;
+    }
+
+    syncShellRaf = window.requestAnimationFrame(() => {
+      syncShellRaf = null;
+      if (performance.now() < suppressScrollTriggerUntil) {
+        return;
+      }
+      ensureCurrentShellVisible();
+    });
+  };
+
+  const schedulePostSuppressShellSync = () => {
+    window.clearTimeout(postSuppressSyncTimer);
+    const wait = Math.max(0, suppressScrollTriggerUntil - performance.now()) + 28;
+    postSuppressSyncTimer = window.setTimeout(() => {
+      ensureCurrentShellVisible();
+    }, wait);
+  };
+
+  let refreshTimer = null;
+  const scheduleScrollTriggerRefresh = (delay = 120, { revealCurrent = false } = {}) => {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => {
+      ScrollTrigger.refresh();
+      if (revealCurrent) {
+        ensureCurrentShellVisible();
+      }
+    }, delay);
+  };
+
+  scheduleScrollTriggerRefresh(180, { revealCurrent: true });
+  window.addEventListener('load', () => {
+    scheduleScrollTriggerRefresh(220, { revealCurrent: true });
+  });
+  window.addEventListener('resize', () => {
+    scheduleScrollTriggerRefresh(150, { revealCurrent: true });
+  });
+  window.addEventListener('orientationchange', () => {
+    scheduleScrollTriggerRefresh(260, { revealCurrent: true });
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      scheduleScrollTriggerRefresh(180, { revealCurrent: true });
+    });
+  }
+  window.addEventListener('scroll', requestShellSyncFromScroll, { passive: true });
+
   stageShells.forEach((shell) => {
     ScrollTrigger.create({
       trigger: shell,
-      start: 'top 48%',
-      end: 'bottom 48%',
+      start: getStageTriggerStart,
+      end: getStageTriggerEnd,
+      invalidateOnRefresh: true,
       onEnter: () => {
         if (performance.now() < suppressScrollTriggerUntil) {
+          schedulePostSuppressShellSync();
           return;
         }
         if (isProgrammaticNavigation) {
@@ -609,6 +685,7 @@ if (hasGsapScroll) {
       },
       onEnterBack: () => {
         if (performance.now() < suppressScrollTriggerUntil) {
+          schedulePostSuppressShellSync();
           return;
         }
         if (isProgrammaticNavigation) {
