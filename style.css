@@ -569,6 +569,11 @@ body.stage-scroll-locked {
   overflow: hidden;
 }
 
+.stage-shell > .container {
+  position: relative;
+  z-index: 2;
+}
+
 :root[data-theme='dark'] .stage-shell {
   border-color: rgba(93, 126, 167, 0.38);
   background:
@@ -600,6 +605,8 @@ body.stage-scroll-locked {
   width: 130px;
   height: 130px;
   background: linear-gradient(135deg, rgba(47, 107, 177, 0.26), transparent 68%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .section-shell::after {
@@ -609,6 +616,7 @@ body.stage-scroll-locked {
   pointer-events: none;
   border: 1px solid rgba(85, 124, 172, 0.3);
   clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  z-index: 0;
 }
 
 .section-head {
@@ -827,7 +835,7 @@ body.stage-scroll-locked {
   position: absolute;
   inset: 12px;
   pointer-events: none;
-  z-index: 5;
+  z-index: 1;
 }
 
 .geo-line {
