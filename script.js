@@ -863,7 +863,6 @@ if (hasGsapScroll) {
         await playReverseScanHide(currentState);
         resetShellState(currentState);
       } else if (currentShell === targetShell && currentState) {
-        hideVisitedShellContentAtStart(currentState);
         await playReverseScanHide(currentState);
       }
 
