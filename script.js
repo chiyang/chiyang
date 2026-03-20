@@ -464,9 +464,7 @@ if (hasGsapScroll) {
   const UPWARD_STAGE_TRIGGER_RATIO = 0.15;
   const DEFAULT_STAGE_TRIGGER_RATIO = 0.42;
   const FIRST_STAGE_EARLY_SCROLL_RATIO = 0.4;
-  const DOWNWARD_STAGE_CONFIRM_DISTANCE = 72;
-  const LONG_STAGE_EXTRA_CONFIRM_RATIO = 0.07;
-  const MAX_DOWNWARD_STAGE_CONFIRM_DISTANCE = 180;
+  const DOWNWARD_STAGE_CONFIRM_DISTANCE = 56;
   const LONG_STAGE_BOTTOM_BRAKE_OVERFLOW_RATIO = 0.2;
   const LONG_STAGE_BOTTOM_RELEASE_RATIO = 0.18;
   const DOWNWARD_STAGE_SETTLE_DELAY_MS = 140;
@@ -564,20 +562,7 @@ if (hasGsapScroll) {
 
   const getShellIndex = (shell) => stageShellList.indexOf(shell);
 
-  const getDownwardStageConfirmDistance = (shell) => {
-    const section = shell ? shell.closest('section') : null;
-    if (!section) {
-      return DOWNWARD_STAGE_CONFIRM_DISTANCE;
-    }
-
-    const overflow = Math.max(0, section.offsetHeight - window.innerHeight);
-    const extraDistance = overflow * LONG_STAGE_EXTRA_CONFIRM_RATIO;
-
-    return Math.min(
-      MAX_DOWNWARD_STAGE_CONFIRM_DISTANCE,
-      DOWNWARD_STAGE_CONFIRM_DISTANCE + extraDistance
-    );
-  };
+  const getDownwardStageConfirmDistance = () => DOWNWARD_STAGE_CONFIRM_DISTANCE;
 
   const needsDownwardStageBottomBrake = (shell) => {
     const section = shell ? shell.closest('section') : null;
