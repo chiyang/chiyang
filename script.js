@@ -83,6 +83,8 @@ const i18nDict = {
     contactEmail: '<strong>Email：</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
     contactOffice: '<strong>辦公室：</strong>桃園市龜山區文化一路 259 號（示意）',
     footerCredit: '本網站由 OpenAI Codex 協作生成',
+    scrollHintUp: '繼續往上捲動以顯示上一個區段',
+    scrollHintDown: '繼續往下捲動以顯示下一個區段',
     footerBackToTop: '回到頂部',
   },
   en: {
@@ -145,6 +147,8 @@ const i18nDict = {
     contactEmail: '<strong>Email:</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
     contactOffice: '<strong>Office:</strong> No. 259, Wenhua 1st Rd., Guishan Dist., Taoyuan (sample)',
     footerCredit: 'This site was created with OpenAI Codex assistance',
+    scrollHintUp: 'Scroll up to reveal the previous section',
+    scrollHintDown: 'Scroll down to reveal the next section',
     footerBackToTop: 'Back to top',
   },
 };
@@ -153,6 +157,7 @@ let currentLang = 'zh';
 let currentTheme = 'light';
 let hasManualTheme = false;
 let updateNavToggleAria = () => {};
+let refreshScrollHintText = () => {};
 
 const getSaved = (key) => {
   try {
@@ -236,6 +241,7 @@ const applyLanguage = (lang, { persist = false } = {}) => {
 
   updateNavToggleAria(navMenu ? navMenu.classList.contains('open') : false);
   updateControlLabels();
+  refreshScrollHintText();
 
   if (persist) {
     setSaved(LANG_STORAGE_KEY, lang);
@@ -405,6 +411,7 @@ if (hasGsapScroll) {
   const scanCore = scanOverlay ? scanOverlay.querySelector('.scan-core') : null;
   const scanLayers = scanCore ? [scanCore] : [];
   const stageShellList = Array.from(stageShells);
+  const lastStageShell = stageShellList[stageShellList.length - 1] || null;
   const topAnchor = document.getElementById('top');
   const firstStageShell = stageShellList[0] || null;
   const firstStageSection = firstStageShell ? firstStageShell.closest('section') : null;
@@ -422,6 +429,7 @@ if (hasGsapScroll) {
   let suppressScrollTriggerUntil = -Infinity;
   let isStartupSyncPending = true;
   let pendingNavigation = Promise.resolve();
+  let hideScrollHint = () => {};
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
   const isEditableTarget = (target) => {
@@ -460,6 +468,9 @@ if (hasGsapScroll) {
     isStageTransitioning = locked;
     document.body.classList.toggle('stage-scroll-locked', locked);
     document.documentElement.classList.toggle('stage-scroll-locked', locked);
+    if (locked) {
+      hideScrollHint();
+    }
   };
 
   const alignShellToViewport = (shell) => {
@@ -852,6 +863,84 @@ if (hasGsapScroll) {
 
     return containingShell || nearestShell;
   };
+
+  const scrollHint = document.createElement('div');
+  scrollHint.className = 'scroll-hint';
+  scrollHint.setAttribute('aria-hidden', 'true');
+  scrollHint.innerHTML = [
+    '<span class="scroll-hint-label"></span>',
+    '<span class="scroll-hint-arrows">',
+    '<span class="scroll-hint-arrow"></span>',
+    '<span class="scroll-hint-arrow"></span>',
+    '<span class="scroll-hint-arrow"></span>',
+    '</span>',
+  ].join('');
+  document.body.appendChild(scrollHint);
+
+  const scrollHintLabel = scrollHint.querySelector('.scroll-hint-label');
+  let scrollHintDirection = '';
+  let scrollHintHideTimer = null;
+
+  const hasScrollTargetInDirection = (direction) => {
+    const currentShell = getCurrentShellFromViewport();
+    if (!currentShell) {
+      return direction > 0 && Boolean(firstStageShell);
+    }
+    if (direction < 0) {
+      return true;
+    }
+    return currentShell !== lastStageShell;
+  };
+
+  const syncScrollHintText = () => {
+    if (!scrollHintLabel || !scrollHintDirection) {
+      return;
+    }
+    const dict = getCurrentDict();
+    scrollHintLabel.textContent = scrollHintDirection === 'up'
+      ? dict.scrollHintUp
+      : dict.scrollHintDown;
+  };
+  refreshScrollHintText = syncScrollHintText;
+
+  hideScrollHint = () => {
+    window.clearTimeout(scrollHintHideTimer);
+    scrollHint.classList.remove('is-visible', 'is-up', 'is-down');
+    scrollHintDirection = '';
+  };
+
+  const showScrollHint = (direction) => {
+    if (isStageTransitioning || isProgrammaticNavigation || isStartupSyncPending) {
+      hideScrollHint();
+      return;
+    }
+    if (!hasScrollTargetInDirection(direction)) {
+      hideScrollHint();
+      return;
+    }
+
+    const nextDirection = direction < 0 ? 'up' : 'down';
+    if (scrollHintDirection !== nextDirection) {
+      scrollHintDirection = nextDirection;
+      scrollHint.classList.toggle('is-up', nextDirection === 'up');
+      scrollHint.classList.toggle('is-down', nextDirection === 'down');
+      syncScrollHintText();
+    }
+
+    scrollHint.classList.add('is-visible');
+    window.clearTimeout(scrollHintHideTimer);
+    scrollHintHideTimer = window.setTimeout(() => {
+      hideScrollHint();
+    }, 680);
+  };
+
+  const handleScrollHintWheel = (event) => {
+    if (Math.abs(event.deltaY) < 1) {
+      return;
+    }
+    showScrollHint(event.deltaY > 0 ? 1 : -1);
+  };
+  window.addEventListener('wheel', handleScrollHintWheel, { passive: true });
 
   const runCrossStageNavigation = async (targetSection) => {
     if (!targetSection) {

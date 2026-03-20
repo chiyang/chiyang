@@ -1013,6 +1013,94 @@ body.stage-scroll-locked {
     0 0 26px rgba(82, 130, 184, 0.12);
 }
 
+.scroll-hint {
+  position: fixed;
+  left: 50%;
+  z-index: 255;
+  display: grid;
+  justify-items: center;
+  gap: 0.26rem;
+  padding: 0.34rem 0.9rem 0.4rem;
+  border: 1px solid rgba(76, 114, 160, 0.48);
+  border-radius: 999px;
+  background: rgba(242, 248, 255, 0.92);
+  color: #234874;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  box-shadow: 0 9px 24px rgba(14, 34, 58, 0.2);
+}
+
+.scroll-hint.is-up {
+  top: calc(86px + env(safe-area-inset-top, 0px));
+}
+
+.scroll-hint.is-down {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.scroll-hint.is-visible {
+  opacity: 1;
+}
+
+.scroll-hint-label {
+  font-family: "Space Grotesk", "Noto Sans TC", sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scroll-hint-arrows {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.scroll-hint-arrow {
+  --hint-rotate: 0deg;
+  --hint-shift: -3px;
+  width: 10px;
+  height: 8px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  opacity: 0.24;
+  animation: hint-arrow-pulse 0.92s ease-in-out infinite;
+}
+
+.scroll-hint-arrow:nth-child(2) {
+  animation-delay: 0.11s;
+}
+
+.scroll-hint-arrow:nth-child(3) {
+  animation-delay: 0.22s;
+}
+
+.scroll-hint.is-down .scroll-hint-arrow {
+  --hint-rotate: 180deg;
+  --hint-shift: 3px;
+}
+
+@keyframes hint-arrow-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: rotate(var(--hint-rotate)) translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: rotate(var(--hint-rotate)) translateY(var(--hint-shift));
+  }
+}
+
+:root[data-theme='dark'] .scroll-hint {
+  border-color: rgba(112, 153, 203, 0.56);
+  background: rgba(10, 24, 40, 0.86);
+  color: #a9cbf1;
+  box-shadow: 0 10px 24px rgba(0, 8, 18, 0.56);
+}
+
 .reveal {
   --reveal-x: 0px;
   --reveal-y: 22px;
