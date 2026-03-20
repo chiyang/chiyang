@@ -194,24 +194,24 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanLayers, {
           opacity: 0.88,
-          duration: 0.12,
+          duration: 0.08,
           ease: 'none',
         }, 0)
         .to(scanOverlay, {
           x: scanEndX,
-          duration: 1.06,
+          duration: 0.78,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
-          duration: 0.24,
+          duration: 0.18,
           ease: 'none',
-        }, 0.76)
+        }, 0.54)
         .to(scanOverlay, {
           autoAlpha: 0,
-          duration: 0.16,
+          duration: 0.12,
           ease: 'none',
-        }, 0.92);
+        }, 0.66);
     });
   };
 
@@ -219,7 +219,7 @@ if (hasGsapScroll) {
     if (!scanOverlay) {
       gsap.to(state.shell, {
         clipPath: 'inset(0 100% 0 0)',
-        duration: 0.8,
+        duration: 0.52,
         ease: 'none',
       });
       return Promise.resolve();
@@ -250,29 +250,29 @@ if (hasGsapScroll) {
         .set(scanLayers, { opacity: 0.54 }, 0)
         .to(scanLayers, {
           opacity: 0.88,
-          duration: 0.1,
+          duration: 0.08,
           ease: 'none',
         }, 0)
         .to(scanOverlay, {
           x: scanStartX,
-          duration: 0.82,
+          duration: 0.52,
           ease: 'none',
         }, 0)
         .to(state.shell, {
           clipPath: 'inset(0 100% 0 0)',
-          duration: 0.82,
+          duration: 0.52,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
-          duration: 0.2,
+          duration: 0.14,
           ease: 'none',
-        }, 0.62)
+        }, 0.34)
         .to(scanOverlay, {
           autoAlpha: 0,
-          duration: 0.16,
+          duration: 0.12,
           ease: 'none',
-        }, 0.72);
+        }, 0.42);
     });
   };
 
@@ -304,6 +304,11 @@ if (hasGsapScroll) {
     });
   };
 
+  const hideVisitedShellContentAtStart = (state) => {
+    gsap.killTweensOf([...state.horizontalDiag, ...state.vertical, ...state.revealItems]);
+    gsap.set([...state.horizontalDiag, ...state.vertical, ...state.revealItems], { opacity: 0 });
+  };
+
   const playShellReveal = (state) => new Promise((resolve) => {
     gsap.timeline({
       defaults: {
@@ -313,32 +318,32 @@ if (hasGsapScroll) {
     })
       .to(state.shell, {
         clipPath: 'inset(0 0% 0 0)',
-        duration: 1.06,
+        duration: 0.78,
         ease: 'none',
       }, 0)
       .to(state.shell, {
         opacity: 1,
         y: 0,
         filter: 'brightness(1) saturate(1)',
-        duration: 0.92,
-      }, 0.08)
+        duration: 0.62,
+      }, 0.02)
       .to(state.horizontalDiag, {
         scaleX: 1,
-        duration: 0.34,
-        stagger: 0.06,
-      }, 0.58)
+        duration: 0.24,
+        stagger: 0.04,
+      }, 0.28)
       .to(state.vertical, {
         scaleY: 1,
-        duration: 0.32,
-        stagger: 0.07,
-      }, 0.64)
+        duration: 0.22,
+        stagger: 0.05,
+      }, 0.3)
       .to(state.revealItems, {
         opacity: 1,
         x: 0,
         y: 0,
-        duration: 0.62,
-        stagger: 0.1,
-      }, 0.72);
+        duration: 0.46,
+        stagger: 0.08,
+      }, 0.36);
   });
 
   const shellStateMap = new Map();
@@ -398,6 +403,7 @@ if (hasGsapScroll) {
 
     try {
       if (state.revealed) {
+        hideVisitedShellContentAtStart(state);
         await playReverseScanHide(state);
         resetShellState(state);
       }
