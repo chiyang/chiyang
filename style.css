@@ -782,7 +782,7 @@ body.stage-scroll-locked {
   z-index: 240;
   opacity: 0;
   visibility: hidden;
-  transform: translate3d(-22vw, 0, 0) skewX(-10deg);
+  transform: translate3d(-2vw, 0, 0) skewX(-10deg);
   will-change: transform, opacity;
   filter: saturate(122%) contrast(108%);
   isolation: isolate;

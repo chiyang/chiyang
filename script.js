@@ -103,8 +103,8 @@ if (hasGsapScroll) {
   const scanCore = scanOverlay ? scanOverlay.querySelector('.scan-core') : null;
   const scanLayers = scanCore ? [scanCore] : [];
 
-  const scanStartX = '-22vw';
-  const scanEndX = '122vw';
+  const scanStartX = '-2vw';
+  const scanEndX = '102vw';
 
   let activeScanTimeline = null;
   let activeShell = null;
@@ -165,7 +165,7 @@ if (hasGsapScroll) {
     }
   };
 
-  const playScan = ({ withReturnSweep = false } = {}) => {
+  const playScan = () => {
     if (!scanOverlay) {
       return Promise.resolve();
     }
@@ -187,41 +187,6 @@ if (hasGsapScroll) {
 
       activeScanTimeline = timeline;
 
-      if (withReturnSweep) {
-        timeline
-          .set(scanOverlay, {
-            autoAlpha: 1,
-            x: scanEndX,
-          }, 0)
-          .set(scanLayers, { opacity: 0.54 }, 0)
-          .to(scanLayers, {
-            opacity: 0.86,
-            duration: 0.08,
-            ease: 'none',
-          }, 0)
-          .to(scanOverlay, {
-            x: scanStartX,
-            duration: 0.24,
-            ease: 'power1.in',
-          }, 0)
-          .to(scanOverlay, {
-            x: scanEndX,
-            duration: 1.06,
-            ease: 'none',
-          }, 0.24)
-          .to(scanLayers, {
-            opacity: 0.52,
-            duration: 0.24,
-            ease: 'none',
-          }, 0.9)
-          .to(scanOverlay, {
-            autoAlpha: 0,
-            duration: 0.16,
-            ease: 'none',
-          }, 1.12);
-        return;
-      }
-
       timeline
         .set(scanOverlay, {
           autoAlpha: 1,
@@ -236,17 +201,78 @@ if (hasGsapScroll) {
           x: scanEndX,
           duration: 1.06,
           ease: 'none',
-        }, 0.02)
+        }, 0)
         .to(scanLayers, {
           opacity: 0.52,
           duration: 0.24,
           ease: 'none',
-        }, 0.74)
+        }, 0.76)
         .to(scanOverlay, {
           autoAlpha: 0,
           duration: 0.16,
           ease: 'none',
-        }, 0.98);
+        }, 0.92);
+    });
+  };
+
+  const playReverseScanHide = (state) => {
+    if (!scanOverlay) {
+      gsap.to(state.shell, {
+        clipPath: 'inset(0 100% 0 0)',
+        duration: 0.8,
+        ease: 'none',
+      });
+      return Promise.resolve();
+    }
+
+    if (activeScanTimeline) {
+      activeScanTimeline.kill();
+      activeScanTimeline = null;
+    }
+
+    gsap.killTweensOf([scanOverlay, ...scanLayers, state.shell]);
+
+    return new Promise((resolve) => {
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          activeScanTimeline = null;
+          resolve();
+        },
+      });
+
+      activeScanTimeline = timeline;
+
+      timeline
+        .set(scanOverlay, {
+          autoAlpha: 1,
+          x: scanEndX,
+        }, 0)
+        .set(scanLayers, { opacity: 0.54 }, 0)
+        .to(scanLayers, {
+          opacity: 0.88,
+          duration: 0.1,
+          ease: 'none',
+        }, 0)
+        .to(scanOverlay, {
+          x: scanStartX,
+          duration: 0.82,
+          ease: 'none',
+        }, 0)
+        .to(state.shell, {
+          clipPath: 'inset(0 100% 0 0)',
+          duration: 0.82,
+          ease: 'none',
+        }, 0)
+        .to(scanLayers, {
+          opacity: 0.52,
+          duration: 0.2,
+          ease: 'none',
+        }, 0.62)
+        .to(scanOverlay, {
+          autoAlpha: 0,
+          duration: 0.16,
+          ease: 'none',
+        }, 0.72);
     });
   };
 
@@ -286,29 +312,33 @@ if (hasGsapScroll) {
       onComplete: resolve,
     })
       .to(state.shell, {
+        clipPath: 'inset(0 0% 0 0)',
+        duration: 1.06,
+        ease: 'none',
+      }, 0)
+      .to(state.shell, {
         opacity: 1,
         y: 0,
-        clipPath: 'inset(0 0% 0 0)',
         filter: 'brightness(1) saturate(1)',
-        duration: 1.2,
-      }, 0.16)
+        duration: 0.92,
+      }, 0.08)
       .to(state.horizontalDiag, {
         scaleX: 1,
         duration: 0.34,
         stagger: 0.06,
-      }, 0.72)
+      }, 0.58)
       .to(state.vertical, {
         scaleY: 1,
         duration: 0.32,
         stagger: 0.07,
-      }, 0.78)
+      }, 0.64)
       .to(state.revealItems, {
         opacity: 1,
         x: 0,
         y: 0,
         duration: 0.62,
         stagger: 0.1,
-      }, 0.94);
+      }, 0.72);
   });
 
   const shellStateMap = new Map();
@@ -368,13 +398,14 @@ if (hasGsapScroll) {
 
     try {
       if (state.revealed) {
+        await playReverseScanHide(state);
         resetShellState(state);
-        await playScan({ withReturnSweep: true });
-      } else {
-        await playScan();
       }
 
-      await playShellReveal(state);
+      await Promise.all([
+        playScan(),
+        playShellReveal(state),
+      ]);
       state.revealed = true;
     } finally {
       setStageScrollLock(false);
