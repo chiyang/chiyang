@@ -35,6 +35,18 @@ html {
   font-size: 18px;
 }
 
+html.top-navigation-active {
+  scroll-behavior: auto;
+}
+
+html.top-navigation-active main {
+  scroll-snap-type: none;
+}
+
+html.top-navigation-active .stage {
+  scroll-snap-stop: normal;
+}
+
 main {
   scroll-snap-type: y proximity;
   scroll-padding-top: 84px;
