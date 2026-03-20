@@ -425,6 +425,7 @@ if (hasGsapScroll) {
   let isStageTransitioning = false;
   let isProgrammaticNavigation = false;
   let suppressScrollTriggerUntil = -Infinity;
+  let isStartupSyncPending = true;
   let pendingNavigation = Promise.resolve();
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
@@ -789,27 +790,72 @@ if (hasGsapScroll) {
 
     const scrollTop = window.scrollY || window.pageYOffset;
     const firstSection = stageShellList[0].closest('section');
-    if (firstSection && scrollTop < firstSection.offsetTop - 8) {
+    const threshold = 8;
+    if (firstSection && scrollTop < firstSection.offsetTop - threshold) {
       return -1;
     }
 
-    let nearestIndex = -1;
+    for (let index = 0; index < stageShellList.length; index += 1) {
+      const shell = stageShellList[index];
+      const section = shell.closest('section');
+      if (!section) {
+        continue;
+      }
+
+      const nextShell = stageShellList[index + 1];
+      const nextSection = nextShell ? nextShell.closest('section') : null;
+      const sectionTop = section.offsetTop;
+      const nextTop = nextSection ? nextSection.offsetTop : Infinity;
+
+      if (scrollTop >= sectionTop - threshold && scrollTop < nextTop - threshold) {
+        return index;
+      }
+    }
+
+    return stageShellList.length - 1;
+  };
+
+  const getCurrentShellFromViewport = () => {
+    if (stageShellList.length === 0) {
+      return null;
+    }
+
+    const viewportAnchor = window.innerHeight * 0.42;
+    const firstSection = stageShellList[0].closest('section');
+    if (firstSection) {
+      const firstRect = firstSection.getBoundingClientRect();
+      if (firstRect.top > viewportAnchor + 8) {
+        return null;
+      }
+    }
+
+    let containingShell = null;
+    let nearestShell = null;
     let nearestDistance = Infinity;
 
-    stageShellList.forEach((shell, index) => {
+    stageShellList.forEach((shell) => {
       const section = shell.closest('section');
       if (!section) {
         return;
       }
 
-      const distance = Math.abs(section.offsetTop - scrollTop);
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= viewportAnchor && rect.bottom > viewportAnchor) {
+        containingShell = shell;
+        return;
+      }
+
+      const distance = rect.top > viewportAnchor
+        ? rect.top - viewportAnchor
+        : viewportAnchor - rect.bottom;
+
       if (distance < nearestDistance) {
         nearestDistance = distance;
-        nearestIndex = index;
+        nearestShell = shell;
       }
     });
 
-    return nearestIndex;
+    return containingShell || nearestShell;
   };
 
   const runCrossStageNavigation = async (targetSection) => {
@@ -942,17 +988,13 @@ if (hasGsapScroll) {
     });
   });
 
-  const isCompactViewport = () => window.matchMedia('(max-width: 1024px)').matches;
-  const getStageTriggerStart = () => (isCompactViewport() ? 'top 72%' : 'top 48%');
-  const getStageTriggerEnd = () => (isCompactViewport() ? 'bottom 28%' : 'bottom 48%');
-
-  const ensureCurrentShellVisible = () => {
+  const ensureCurrentShellVisible = ({ allowTopFallback = true, force = false } = {}) => {
     if (isProgrammaticNavigation || isStageTransitioning) {
       return;
     }
 
-    const currentIndex = getCurrentShellIndex();
-    if (currentIndex < 0) {
+    const shell = getCurrentShellFromViewport();
+    if (!shell) {
       if (firstStageShell && activeShell === firstStageShell) {
         const firstState = shellStateMap.get(firstStageShell);
         if (firstState) {
@@ -963,22 +1005,24 @@ if (hasGsapScroll) {
         activeShell = null;
         return;
       }
-      if (firstStageShell && activeShell && activeShell !== firstStageShell) {
+      if (allowTopFallback && firstStageShell && activeShell && activeShell !== firstStageShell) {
         activateShell(firstStageShell, { force: true });
       }
       return;
     }
 
-    const shell = stageShellList[currentIndex];
-    if (!shell || shell === activeShell) {
+    const state = shellStateMap.get(shell);
+    if (shell === activeShell) {
+      if (force && state && !state.revealed) {
+        activateShell(shell, { force: true });
+      }
       return;
     }
 
-    activateShell(shell);
+    activateShell(shell, { force });
   };
 
   let syncShellRaf = null;
-  let postSuppressSyncTimer = null;
   const requestShellSyncFromScroll = () => {
     if (syncShellRaf !== null) {
       return;
@@ -986,6 +1030,9 @@ if (hasGsapScroll) {
 
     syncShellRaf = window.requestAnimationFrame(() => {
       syncShellRaf = null;
+      if (isStartupSyncPending) {
+        return;
+      }
       if (performance.now() < suppressScrollTriggerUntil) {
         return;
       }
@@ -993,28 +1040,50 @@ if (hasGsapScroll) {
     });
   };
 
-  const schedulePostSuppressShellSync = () => {
-    window.clearTimeout(postSuppressSyncTimer);
-    const wait = Math.max(0, suppressScrollTriggerUntil - performance.now()) + 28;
-    postSuppressSyncTimer = window.setTimeout(() => {
-      ensureCurrentShellVisible();
-    }, wait);
-  };
-
   let refreshTimer = null;
+  let startupSyncFallbackTimer = null;
   const scheduleScrollTriggerRefresh = (delay = 120, { revealCurrent = false } = {}) => {
     window.clearTimeout(refreshTimer);
     refreshTimer = window.setTimeout(() => {
+      if (revealCurrent) {
+        suppressScrollTriggerUntil = Math.max(suppressScrollTriggerUntil, performance.now() + 720);
+      }
       ScrollTrigger.refresh();
       if (revealCurrent) {
-        ensureCurrentShellVisible();
+        ensureCurrentShellVisible({ allowTopFallback: false, force: true });
       }
     }, delay);
   };
 
-  scheduleScrollTriggerRefresh(180, { revealCurrent: true });
-  window.addEventListener('load', () => {
-    scheduleScrollTriggerRefresh(220, { revealCurrent: true });
+  const scheduleStartupShellSync = () => {
+    window.clearTimeout(startupSyncFallbackTimer);
+    isStartupSyncPending = true;
+
+    let triggered = false;
+    const releaseStartupSync = () => {
+      window.setTimeout(() => {
+        isStartupSyncPending = false;
+      }, 460);
+    };
+    const runStartupSync = () => {
+      if (triggered) {
+        return;
+      }
+      triggered = true;
+      window.removeEventListener('scroll', handleStartupScroll);
+      scheduleScrollTriggerRefresh(0, { revealCurrent: true });
+      releaseStartupSync();
+    };
+    const handleStartupScroll = () => {
+      runStartupSync();
+    };
+
+    window.addEventListener('scroll', handleStartupScroll, { passive: true, once: true });
+    startupSyncFallbackTimer = window.setTimeout(runStartupSync, 680);
+  };
+
+  window.addEventListener('pageshow', () => {
+    scheduleStartupShellSync();
   });
   window.addEventListener('resize', () => {
     scheduleScrollTriggerRefresh(150, { revealCurrent: true });
@@ -1028,35 +1097,6 @@ if (hasGsapScroll) {
     });
   }
   window.addEventListener('scroll', requestShellSyncFromScroll, { passive: true });
-
-  stageShells.forEach((shell) => {
-    ScrollTrigger.create({
-      trigger: shell,
-      start: getStageTriggerStart,
-      end: getStageTriggerEnd,
-      invalidateOnRefresh: true,
-      onEnter: () => {
-        if (performance.now() < suppressScrollTriggerUntil) {
-          schedulePostSuppressShellSync();
-          return;
-        }
-        if (isProgrammaticNavigation) {
-          return;
-        }
-        activateShell(shell);
-      },
-      onEnterBack: () => {
-        if (performance.now() < suppressScrollTriggerUntil) {
-          schedulePostSuppressShellSync();
-          return;
-        }
-        if (isProgrammaticNavigation) {
-          return;
-        }
-        activateShell(shell);
-      },
-    });
-  });
 } else {
   const revealObserver = new IntersectionObserver(
     (entries) => {
