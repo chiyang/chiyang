@@ -11,6 +11,303 @@ const cursorGlow = document.querySelector('.cursor-glow');
 const parallaxNodes = document.querySelectorAll('[data-parallax]');
 const scanOverlay = document.querySelector('.scan-overlay');
 const topLinks = document.querySelectorAll('a[href="#top"]');
+const themeToggle = document.querySelector('.theme-toggle');
+const langToggle = document.querySelector('.lang-toggle');
+const i18nTextNodes = document.querySelectorAll('[data-i18n]');
+const i18nHtmlNodes = document.querySelectorAll('[data-i18n-html]');
+const i18nAriaNodes = document.querySelectorAll('[data-i18n-aria-label]');
+const i18nMetaNode = document.querySelector('meta[data-i18n-meta]');
+const i18nTitleNode = document.querySelector('title[data-i18n-title]');
+
+const THEME_STORAGE_KEY = 'chi-site-theme';
+const LANG_STORAGE_KEY = 'chi-site-lang';
+
+const i18nDict = {
+  zh: {
+    pageTitle: '楊崎 Chi Yang | 個人網站',
+    metaDescription: '楊崎 Chi Yang 的個人學術網站，專注於人工智慧、蛋白體學與質譜學研究。',
+    navMainAria: '主選單',
+    brandSub: '學術檔案',
+    navAbout: '關於我',
+    navInterests: '研究興趣',
+    navWorks: '論文 / 計畫',
+    navContact: '聯絡方式',
+    toggleLanguageAria: '切換語言',
+    toggleThemeAria: '切換明暗主題',
+    navToggleOpenAria: '開啟選單',
+    navToggleCloseAria: '關閉選單',
+    themeSwitchToDark: '深色',
+    themeSwitchToLight: '淺色',
+    heroSystemTag: '研究節點 01',
+    heroNameMain: '楊崎 <span>Chi Yang</span>',
+    heroTitle: '助理研究員',
+    heroTagline: '以人工智慧重塑蛋白體與質譜分析流程，建立高可重現、可轉譯的研究管線。',
+    heroBtnWorks: '瀏覽研究成果',
+    heroBtnContact: '聯絡我',
+    heroFocusTitle: '研究焦點',
+    heroFocus1: 'AI 驅動的 MRM / Targeted MS 資料品質評估',
+    heroFocus2: '蛋白體生物標記探索與精準醫療應用',
+    heroFocus3: '自動化 peak-picking 與可重現分析流程設計',
+    heroFooterLeft: '系統啟用中',
+    heroFooterRight: '學術介面',
+    aboutKicker: '關於我',
+    aboutTitle: '研究者簡介',
+    aboutBody1: '我是楊崎（Chi Yang），目前任職於長庚大學，專注於人工智慧、蛋白體學與質譜學交叉研究。研究上聚焦於將機器學習方法導入生醫資料流程，提升蛋白質定量準確性與分析效率。',
+    aboutBody2: '在教學與研究管理中，我重視可重現性與跨域協作，致力於建立可延續、可驗證、可轉譯的研究方法。',
+    aboutQuickProfileTitle: 'Quick Profile',
+    aboutQuickProfileRole: '<strong>職稱：</strong>助理研究員',
+    aboutQuickProfileExpertise: '<strong>專長：</strong>人工智慧、蛋白體、質譜學',
+    aboutQuickProfileHobbies: '<strong>興趣：</strong>跑步、羽球、單車',
+    interestsKicker: '研究興趣',
+    interestsTitle: '研究興趣',
+    interestCard1Title: '人工智慧',
+    interestCard1Body: '深度學習、強化學習與生成式方法，應用於生醫訊號與多維質譜資料分析。',
+    interestCard2Title: '蛋白體學',
+    interestCard2Body: '以標靶蛋白體與生物標記開發為核心，建立可驗證且可落地的研究流程。',
+    interestCard3Title: '質譜學',
+    interestCard3Body: '聚焦 MRM/LC-MS 資料品質控管與 peak-picking 自動化，強化研究重現性。',
+    worksKicker: '論文 / 計畫',
+    worksTitle: '代表論文與計畫',
+    workCard1Body: '參與毒蛇抗蛇毒血清效力提升研究，涵蓋蛋白體與分析化學協作。',
+    workCard2Body: '以變分自編碼器進行質譜峰品質判讀，降低人工檢視成本並提升準確度。',
+    workCard3Body: '提出自動化峰值選取管線，結合 2D heatmap 與 CNN，提升蛋白體分析效率。',
+    workCard4Meta: '2025-2026 | 國科會計畫（PI）',
+    workCard4Body: '使用生成式 AI 協助 signature peptide 與 fragment ion 選擇，加速 assay 設計流程。',
+    worksNote: '資料來源：Chang Gung University Academic Capacity Ensemble（Chi Yang Profile，擷取重點整理）。',
+    contactKicker: '聯絡方式',
+    contactTitle: '聯絡方式',
+    contactName: '<strong>姓名：</strong>楊崎 Chi Yang',
+    contactRole: '<strong>職稱：</strong>助理研究員',
+    contactExpertise: '<strong>研究專長：</strong>人工智慧、蛋白體、質譜學',
+    contactHobbies: '<strong>興趣：</strong>跑步、羽球、單車',
+    contactEmail: '<strong>Email：</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
+    contactOffice: '<strong>辦公室：</strong>桃園市龜山區文化一路 259 號（示意）',
+    footerName: '楊崎 Chi Yang',
+    footerBackToTop: '回到頂部',
+  },
+  en: {
+    pageTitle: 'Chi Yang | Personal Academic Site',
+    metaDescription: 'Chi Yang personal academic website focused on AI, proteomics, and mass spectrometry.',
+    navMainAria: 'Main menu',
+    brandSub: 'Academic Profile',
+    navAbout: 'About me',
+    navInterests: 'Research interests',
+    navWorks: 'Publications / Projects',
+    navContact: 'Contact',
+    toggleLanguageAria: 'Switch language',
+    toggleThemeAria: 'Toggle theme',
+    navToggleOpenAria: 'Open menu',
+    navToggleCloseAria: 'Close menu',
+    themeSwitchToDark: 'Dark',
+    themeSwitchToLight: 'Light',
+    heroSystemTag: 'Research Node 01',
+    heroNameMain: 'CHI YANG <span>Academic Profile</span>',
+    heroTitle: 'Assistant Researcher',
+    heroTagline: 'Reframing proteomics and mass spectrometry workflows with AI to build reproducible and translatable research pipelines.',
+    heroBtnWorks: 'View Research',
+    heroBtnContact: 'Contact',
+    heroFocusTitle: 'Research Focus',
+    heroFocus1: 'AI-powered quality assessment for MRM / Targeted MS data',
+    heroFocus2: 'Proteomic biomarker discovery and precision medicine applications',
+    heroFocus3: 'Automated peak-picking and reproducible analysis workflow design',
+    heroFooterLeft: 'Systems Active',
+    heroFooterRight: 'Academic Interface',
+    aboutKicker: 'About me',
+    aboutTitle: 'Researcher Profile',
+    aboutBody1: 'I am Chi Yang, currently working at Chang Gung University, focusing on interdisciplinary research in AI, proteomics, and mass spectrometry. My work emphasizes introducing machine learning into biomedical data pipelines to improve protein quantification accuracy and analytical efficiency.',
+    aboutBody2: 'In teaching and research operations, I value reproducibility and interdisciplinary collaboration, aiming to develop methods that are sustainable, verifiable, and translatable.',
+    aboutQuickProfileTitle: 'Quick Profile',
+    aboutQuickProfileRole: '<strong>Title:</strong> Assistant Researcher',
+    aboutQuickProfileExpertise: '<strong>Expertise:</strong> Artificial Intelligence, Proteomics, Mass Spectrometry',
+    aboutQuickProfileHobbies: '<strong>Interests:</strong> Running, Badminton, Cycling',
+    interestsKicker: 'Research interests',
+    interestsTitle: 'Research Interests',
+    interestCard1Title: 'Artificial Intelligence',
+    interestCard1Body: 'Applying deep learning, reinforcement learning, and generative methods to biomedical signals and high-dimensional MS data.',
+    interestCard2Title: 'Proteomics',
+    interestCard2Body: 'Developing targeted proteomics and biomarker workflows that are verifiable and deployable.',
+    interestCard3Title: 'Mass Spectrometry',
+    interestCard3Body: 'Focusing on MRM/LC-MS quality control and automated peak-picking to improve reproducibility.',
+    worksKicker: 'Publications / Projects',
+    worksTitle: 'Selected Papers & Projects',
+    workCard1Body: 'Contributed to antivenom potency enhancement research involving proteomics and analytical chemistry collaboration.',
+    workCard2Body: 'Used a variational autoencoder to assess MS peak quality, reducing manual review effort and improving accuracy.',
+    workCard3Body: 'Proposed an automatic peak-picking pipeline combining 2D heatmap transformation and CNN for targeted proteomics.',
+    workCard4Meta: '2025-2026 | NSTC Project (PI)',
+    workCard4Body: 'Applying generative AI to assist signature peptide and fragment ion selection for faster MRM assay design.',
+    worksNote: 'Source: Chang Gung University Academic Capacity Ensemble (Chi Yang profile, summarized).',
+    contactKicker: 'Contact',
+    contactTitle: 'Contact',
+    contactName: '<strong>Name:</strong> Chi Yang',
+    contactRole: '<strong>Title:</strong> Assistant Researcher',
+    contactExpertise: '<strong>Expertise:</strong> Artificial Intelligence, Proteomics, Mass Spectrometry',
+    contactHobbies: '<strong>Interests:</strong> Running, Badminton, Cycling',
+    contactEmail: '<strong>Email:</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a>',
+    contactOffice: '<strong>Office:</strong> No. 259, Wenhua 1st Rd., Guishan Dist., Taoyuan (sample)',
+    footerName: 'Chi Yang',
+    footerBackToTop: 'Back to top',
+  },
+};
+
+let currentLang = 'zh';
+let currentTheme = 'light';
+let hasManualTheme = false;
+let updateNavToggleAria = () => {};
+
+const getSaved = (key) => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const setSaved = (key, value) => {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // ignore storage failures
+  }
+};
+
+const detectLang = () => (
+  navigator.language && navigator.language.toLowerCase().startsWith('zh')
+    ? 'zh'
+    : 'en'
+);
+
+const getCurrentDict = () => i18nDict[currentLang] || i18nDict.zh;
+
+const updateControlLabels = () => {
+  const dict = getCurrentDict();
+  if (langToggle) {
+    langToggle.textContent = currentLang === 'zh' ? 'EN' : '中';
+  }
+  if (themeToggle) {
+    themeToggle.textContent = currentTheme === 'dark'
+      ? dict.themeSwitchToLight
+      : dict.themeSwitchToDark;
+  }
+};
+
+const applyLanguage = (lang, { persist = false } = {}) => {
+  if (!i18nDict[lang]) {
+    return;
+  }
+
+  currentLang = lang;
+  document.documentElement.lang = lang === 'zh' ? 'zh-Hant' : 'en';
+  const dict = getCurrentDict();
+
+  i18nTextNodes.forEach((node) => {
+    const key = node.dataset.i18n;
+    if (key && dict[key] !== undefined) {
+      node.textContent = dict[key];
+    }
+  });
+
+  i18nHtmlNodes.forEach((node) => {
+    const key = node.dataset.i18nHtml;
+    if (key && dict[key] !== undefined) {
+      node.innerHTML = dict[key];
+    }
+  });
+
+  i18nAriaNodes.forEach((node) => {
+    const key = node.dataset.i18nAriaLabel;
+    if (key && dict[key] !== undefined) {
+      node.setAttribute('aria-label', dict[key]);
+    }
+  });
+
+  if (i18nMetaNode) {
+    const key = i18nMetaNode.dataset.i18nMeta;
+    if (key && dict[key] !== undefined) {
+      i18nMetaNode.setAttribute('content', dict[key]);
+    }
+  }
+
+  if (i18nTitleNode) {
+    const key = i18nTitleNode.dataset.i18nTitle;
+    if (key && dict[key] !== undefined) {
+      document.title = dict[key];
+    }
+  }
+
+  updateNavToggleAria(navMenu ? navMenu.classList.contains('open') : false);
+  updateControlLabels();
+
+  if (persist) {
+    setSaved(LANG_STORAGE_KEY, lang);
+  }
+};
+
+const applyTheme = (theme, { persist = false, manual = false } = {}) => {
+  if (theme !== 'light' && theme !== 'dark') {
+    return;
+  }
+
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  updateControlLabels();
+
+  if (manual) {
+    hasManualTheme = true;
+  }
+  if (persist) {
+    setSaved(THEME_STORAGE_KEY, theme);
+  }
+};
+
+updateNavToggleAria = (isOpen) => {
+  if (!navToggle) {
+    return;
+  }
+  const dict = getCurrentDict();
+  const key = isOpen ? 'navToggleCloseAria' : 'navToggleOpenAria';
+  navToggle.setAttribute('aria-label', dict[key]);
+};
+
+const savedLang = getSaved(LANG_STORAGE_KEY);
+const initialLang = i18nDict[savedLang] ? savedLang : detectLang();
+applyLanguage(initialLang);
+
+const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const savedTheme = getSaved(THEME_STORAGE_KEY);
+if (savedTheme === 'dark' || savedTheme === 'light') {
+  hasManualTheme = true;
+  applyTheme(savedTheme);
+} else {
+  applyTheme(colorSchemeQuery.matches ? 'dark' : 'light');
+}
+
+if (typeof colorSchemeQuery.addEventListener === 'function') {
+  colorSchemeQuery.addEventListener('change', (event) => {
+    if (!hasManualTheme) {
+      applyTheme(event.matches ? 'dark' : 'light');
+    }
+  });
+} else if (typeof colorSchemeQuery.addListener === 'function') {
+  colorSchemeQuery.addListener((event) => {
+    if (!hasManualTheme) {
+      applyTheme(event.matches ? 'dark' : 'light');
+    }
+  });
+}
+
+if (langToggle) {
+  langToggle.addEventListener('click', () => {
+    const nextLang = currentLang === 'zh' ? 'en' : 'zh';
+    applyLanguage(nextLang, { persist: true });
+  });
+}
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme, { persist: true, manual: true });
+  });
+}
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const supportsHover = window.matchMedia('(hover: hover)').matches;
@@ -25,6 +322,7 @@ const closeNavMenu = () => {
   }
   navMenu.classList.remove('open');
   navToggle.setAttribute('aria-expanded', 'false');
+  updateNavToggleAria(false);
 };
 
 if (yearNode) {
@@ -42,6 +340,7 @@ if (navToggle && navMenu) {
   navToggle.addEventListener('click', () => {
     const isOpen = navMenu.classList.toggle('open');
     navToggle.setAttribute('aria-expanded', String(isOpen));
+    updateNavToggleAria(isOpen);
   });
 
   navLinks.forEach((link) => {
@@ -215,19 +514,19 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanOverlay, {
           x: scanEndX,
-          duration: 0.66,
+          duration: 0.58,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
           duration: 0.14,
           ease: 'none',
-        }, 0.52)
+        }, 0.44)
         .to(scanOverlay, {
           autoAlpha: 0,
           duration: 0.08,
           ease: 'none',
-        }, 0.62);
+        }, 0.54);
     });
   };
 
@@ -235,7 +534,7 @@ if (hasGsapScroll) {
     if (!scanOverlay) {
       gsap.to(state.shell, {
         clipPath: 'inset(0 100% 0 0)',
-        duration: 0.38,
+        duration: 0.34,
         ease: 'none',
       });
       return Promise.resolve();
@@ -271,24 +570,24 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanOverlay, {
           x: scanStartX,
-          duration: 0.38,
+          duration: 0.34,
           ease: 'none',
         }, 0)
         .to(state.shell, {
           clipPath: 'inset(0 100% 0 0)',
-          duration: 0.38,
+          duration: 0.34,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
           duration: 0.1,
           ease: 'none',
-        }, 0.24)
+        }, 0.2)
         .to(scanOverlay, {
           autoAlpha: 0,
           duration: 0.08,
           ease: 'none',
-        }, 0.3);
+        }, 0.26);
     });
   };
 
@@ -334,7 +633,7 @@ if (hasGsapScroll) {
     })
       .to(state.shell, {
         clipPath: 'inset(0 0% 0 0)',
-        duration: 0.66,
+        duration: 0.58,
         ease: 'none',
       }, 0)
       .to(state.shell, {

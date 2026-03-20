@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg: #e9eef6;
   --surface: #f8fbff;
   --surface-strong: #ffffff;
@@ -9,6 +10,20 @@
   --dark-1: #091424;
   --dark-2: #10243d;
   --dark-3: #16345a;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #08121f;
+  --surface: #0d1d31;
+  --surface-strong: #13263d;
+  --ink: #d9e8fa;
+  --muted: #9db5d1;
+  --accent: #70aef7;
+  --line: #2a4668;
+  --dark-1: #050c15;
+  --dark-2: #0a1728;
+  --dark-3: #10253f;
 }
 
 * {
@@ -34,6 +49,13 @@ body {
     radial-gradient(circle at 86% 6%, rgba(123, 147, 179, 0.2), transparent 32%),
     linear-gradient(180deg, #e8eef6 0%, #f5f8fc 26%, #e9eef6 100%);
   overflow-x: hidden;
+}
+
+:root[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(75, 118, 179, 0.16), transparent 36%),
+    radial-gradient(circle at 86% 6%, rgba(49, 82, 121, 0.22), transparent 34%),
+    linear-gradient(180deg, #07101c 0%, #0a1626 38%, #07101c 100%);
 }
 
 html.stage-scroll-locked,
@@ -144,6 +166,11 @@ body.stage-scroll-locked {
   border-bottom: 1px solid rgba(18, 40, 69, 0.14);
 }
 
+:root[data-theme='dark'] .site-header.scrolled {
+  background: rgba(8, 19, 33, 0.82);
+  border-bottom-color: rgba(102, 140, 186, 0.26);
+}
+
 .site-header:not(.scrolled) .brand-main,
 .site-header:not(.scrolled) .nav-menu a {
   color: #ebf3ff;
@@ -161,6 +188,29 @@ body.stage-scroll-locked {
   background: #e7f1ff;
 }
 
+.site-header:not(.scrolled) .control-btn {
+  border-color: rgba(143, 181, 225, 0.42);
+  background: rgba(9, 23, 40, 0.52);
+  color: #deecff;
+}
+
+:root[data-theme='dark'] .site-header:not(.scrolled) .brand-main,
+:root[data-theme='dark'] .site-header:not(.scrolled) .nav-menu a {
+  color: #e5f1ff;
+}
+
+:root[data-theme='dark'] .site-header:not(.scrolled) .brand-sub {
+  color: #aac6e7;
+}
+
+:root[data-theme='dark'] .site-header:not(.scrolled) .nav-menu a::after {
+  background: #8fc1f7;
+}
+
+:root[data-theme='dark'] .site-header:not(.scrolled) .nav-toggle span {
+  background: #d8e9ff;
+}
+
 .nav {
   min-height: 76px;
   display: flex;
@@ -176,10 +226,11 @@ body.stage-scroll-locked {
 }
 
 .brand-main {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 1.14rem;
+  font-family: "Bitcount Prop Double", "Space Grotesk", sans-serif;
+  font-size: 1.22rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .brand-sub {
@@ -191,6 +242,7 @@ body.stage-scroll-locked {
 
 .nav-menu {
   margin: 0;
+  margin-left: auto;
   padding: 0;
   list-style: none;
   display: flex;
@@ -235,6 +287,40 @@ body.stage-scroll-locked {
   height: 2px;
   margin: 0.28rem 0;
   background: var(--ink);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.9rem;
+}
+
+.control-btn {
+  appearance: none;
+  border: 1px solid rgba(78, 116, 160, 0.4);
+  background: rgba(248, 251, 255, 0.84);
+  color: #234469;
+  border-radius: 999px;
+  min-width: 2.5rem;
+  padding: 0.34rem 0.68rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.control-btn:hover {
+  transform: translateY(-1px);
+}
+
+:root[data-theme='dark'] .control-btn {
+  border-color: rgba(121, 162, 210, 0.44);
+  background: rgba(12, 26, 43, 0.84);
+  color: #cde1f8;
 }
 
 .stage {
@@ -447,6 +533,22 @@ body.stage-scroll-locked {
   overflow: hidden;
 }
 
+:root[data-theme='dark'] .stage-shell,
+:root[data-theme='dark'] #interests .stage-shell,
+:root[data-theme='dark'] #works .stage-shell,
+:root[data-theme='dark'] #contact .stage-shell {
+  border-color: rgba(93, 126, 167, 0.38);
+  background:
+    linear-gradient(125deg, rgba(12, 28, 46, 0.96), rgba(11, 23, 39, 0.94) 52%, rgba(14, 30, 48, 0.96)),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(86, 132, 187, 0.16) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(86, 132, 187, 0.16) 23px 24px),
+    repeating-linear-gradient(0deg, transparent 0 95px, rgba(65, 105, 155, 0.25) 95px 96px),
+    repeating-linear-gradient(90deg, transparent 0 95px, rgba(65, 105, 155, 0.25) 95px 96px),
+    repeating-linear-gradient(-45deg, rgba(83, 130, 182, 0.12) 0, rgba(83, 130, 182, 0.12) 1px, transparent 1px, transparent 14px);
+  background-size: auto, auto, auto, auto, auto, 18px 18px;
+  box-shadow: 0 20px 42px rgba(2, 10, 20, 0.48);
+}
+
 #interests .stage-shell {
   background:
     linear-gradient(125deg, rgba(231, 242, 255, 0.96), rgba(216, 229, 245, 0.92) 50%, rgba(234, 245, 255, 0.94)),
@@ -485,6 +587,11 @@ body.stage-scroll-locked {
   box-shadow: 0 30px 58px rgba(10, 33, 65, 0.24);
 }
 
+:root[data-theme='dark'] .section-shell.stage-active {
+  border-color: rgba(117, 165, 221, 0.76);
+  box-shadow: 0 32px 60px rgba(2, 10, 20, 0.64);
+}
+
 .section-shell::before {
   content: "";
   position: absolute;
@@ -521,6 +628,10 @@ body.stage-scroll-locked {
   -webkit-text-stroke: 1px rgba(61, 103, 156, 0.5);
 }
 
+:root[data-theme='dark'] .section-no {
+  -webkit-text-stroke: 1px rgba(126, 166, 214, 0.62);
+}
+
 .kicker {
   margin: 0;
   font-family: "Space Grotesk", sans-serif;
@@ -530,9 +641,17 @@ body.stage-scroll-locked {
   color: #3e73b0;
 }
 
+:root[data-theme='dark'] .kicker {
+  color: #8db9ea;
+}
+
 .section-head h2 {
   margin: 0.28rem 0 0;
   font-size: clamp(1.45rem, 2.8vw, 2rem);
+}
+
+:root[data-theme='dark'] .section-head h2 {
+  color: #dcecff;
 }
 
 .panel {
@@ -542,6 +661,12 @@ body.stage-scroll-locked {
   background: linear-gradient(150deg, var(--surface-strong), var(--surface));
   box-shadow: 0 16px 36px rgba(12, 34, 60, 0.12);
   padding: 1.3rem;
+}
+
+:root[data-theme='dark'] .panel {
+  border-color: rgba(85, 126, 172, 0.44);
+  background: linear-gradient(150deg, rgba(17, 36, 57, 0.96), rgba(12, 28, 45, 0.94));
+  box-shadow: 0 16px 34px rgba(0, 7, 15, 0.5);
 }
 
 .panel::after {
@@ -558,6 +683,10 @@ body.stage-scroll-locked {
 .panel p {
   margin: 0 0 0.84rem;
   color: #2b415f;
+}
+
+:root[data-theme='dark'] .panel p {
+  color: #c4d7ee;
 }
 
 .panel p:last-child {
@@ -624,6 +753,10 @@ body.stage-scroll-locked {
   letter-spacing: 0.03em;
 }
 
+:root[data-theme='dark'] .work-card .meta {
+  color: #8cbcf0;
+}
+
 .work-card h3 {
   margin: 0;
   font-size: 1.03rem;
@@ -640,12 +773,21 @@ body.stage-scroll-locked {
   font-size: 0.9rem;
 }
 
+:root[data-theme='dark'] .note {
+  color: #9bb6d6;
+}
+
 .contact-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .contact-panel a {
   color: #2f6bb1;
+}
+
+:root[data-theme='dark'] .contact-panel a,
+:root[data-theme='dark'] .footer-wrap a {
+  color: #88bcf9;
 }
 
 .site-footer {
@@ -664,6 +806,10 @@ body.stage-scroll-locked {
 .footer-wrap p {
   margin: 0;
   color: var(--muted);
+}
+
+:root[data-theme='dark'] .footer-wrap p {
+  color: #9fb8d6;
 }
 
 .footer-wrap a {
@@ -897,6 +1043,7 @@ body.stage-scroll-locked {
 
   .nav {
     min-height: 68px;
+    gap: 0.45rem;
   }
 
   .nav-toggle {
@@ -920,6 +1067,7 @@ body.stage-scroll-locked {
     opacity: 0;
     visibility: hidden;
     transition: 0.22s;
+    margin-left: 0;
   }
 
   .nav-menu.open {
@@ -936,6 +1084,17 @@ body.stage-scroll-locked {
 
   .nav-menu a:hover {
     background: #eaf1fa;
+  }
+
+  .nav-controls {
+    margin-left: auto;
+    gap: 0.35rem;
+  }
+
+  .control-btn {
+    min-width: 2.2rem;
+    padding: 0.3rem 0.56rem;
+    font-size: 0.66rem;
   }
 
   .hero {
@@ -966,4 +1125,14 @@ body.stage-scroll-locked {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+:root[data-theme='dark'] .nav-menu {
+  border-color: rgba(109, 145, 188, 0.44);
+  background: rgba(9, 22, 37, 0.94);
+  box-shadow: 0 18px 38px rgba(1, 7, 15, 0.52);
+}
+
+:root[data-theme='dark'] .nav-menu a:hover {
+  background: rgba(58, 91, 131, 0.32);
 }

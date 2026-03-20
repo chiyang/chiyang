@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="楊崎 Chi Yang 的個人學術網站，專注於人工智慧、蛋白體學與質譜學研究。">
-  <title>楊崎 Chi Yang | 個人網站</title>
+  <meta name="description" content="楊崎 Chi Yang 的個人學術網站，專注於人工智慧、蛋白體學與質譜學研究。" data-i18n-meta="metaDescription">
+  <title data-i18n-title="pageTitle">楊崎 Chi Yang | 個人網站</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Double:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,24 +26,29 @@
   </div>
 
   <header class="site-header">
-    <nav class="nav container" aria-label="主選單">
+    <nav class="nav container" aria-label="主選單" data-i18n-aria-label="navMainAria">
       <a class="brand" href="#top">
-        <span class="brand-main">Chi Yang</span>
-        <span class="brand-sub">Academic Profile</span>
+        <span class="brand-main">CHI YANG</span>
+        <span class="brand-sub" data-i18n="brandSub">Academic Profile</span>
       </a>
 
-      <button class="nav-toggle" type="button" aria-label="開啟選單" aria-expanded="false" aria-controls="nav-menu">
+      <ul class="nav-menu" id="nav-menu">
+        <li><a href="#about" data-i18n="navAbout">About me</a></li>
+        <li><a href="#interests" data-i18n="navInterests">Research interests</a></li>
+        <li><a href="#works" data-i18n="navWorks">Publications / Projects</a></li>
+        <li><a href="#contact" data-i18n="navContact">Contact</a></li>
+      </ul>
+
+      <div class="nav-controls">
+        <button class="control-btn lang-toggle" type="button" aria-label="切換語言" data-i18n-aria-label="toggleLanguageAria">EN</button>
+        <button class="control-btn theme-toggle" type="button" aria-label="切換明暗主題" data-i18n-aria-label="toggleThemeAria">Dark</button>
+      </div>
+
+      <button class="nav-toggle" type="button" aria-label="開啟選單" aria-expanded="false" aria-controls="nav-menu" data-i18n-aria-label="navToggleOpenAria">
         <span></span>
         <span></span>
         <span></span>
       </button>
-
-      <ul class="nav-menu" id="nav-menu">
-        <li><a href="#about">About me</a></li>
-        <li><a href="#interests">Research interests</a></li>
-        <li><a href="#works">Publications / Projects</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
     </nav>
   </header>
 
@@ -55,23 +60,23 @@
 
       <div class="container hero-layout">
         <div class="hero-main reveal reveal-left">
-          <p class="system-tag">Research Node 01</p>
-          <h1>楊崎 <span>Chi Yang</span></h1>
-          <p class="title">助理研究員</p>
-          <p class="tagline">以人工智慧重塑蛋白體與質譜分析流程，建立高可重現、可轉譯的研究管線。</p>
+          <p class="system-tag" data-i18n="heroSystemTag">Research Node 01</p>
+          <h1 data-i18n-html="heroNameMain">楊崎 <span>Chi Yang</span></h1>
+          <p class="title" data-i18n="heroTitle">助理研究員</p>
+          <p class="tagline" data-i18n="heroTagline">以人工智慧重塑蛋白體與質譜分析流程，建立高可重現、可轉譯的研究管線。</p>
 
           <div class="hero-actions">
-            <a class="btn" href="#works">瀏覽研究成果</a>
-            <a class="btn btn-ghost" href="#contact">聯絡我</a>
+            <a class="btn" href="#works" data-i18n="heroBtnWorks">瀏覽研究成果</a>
+            <a class="btn btn-ghost" href="#contact" data-i18n="heroBtnContact">聯絡我</a>
           </div>
         </div>
 
         <aside class="hero-data reveal reveal-right" data-parallax="8">
-          <h2>研究焦點</h2>
+          <h2 data-i18n="heroFocusTitle">研究焦點</h2>
           <ul>
-            <li>AI 驅動的 MRM / Targeted MS 資料品質評估</li>
-            <li>蛋白體生物標記探索與精準醫療應用</li>
-            <li>自動化 peak-picking 與可重現分析流程設計</li>
+            <li data-i18n="heroFocus1">AI 驅動的 MRM / Targeted MS 資料品質評估</li>
+            <li data-i18n="heroFocus2">蛋白體生物標記探索與精準醫療應用</li>
+            <li data-i18n="heroFocus3">自動化 peak-picking 與可重現分析流程設計</li>
           </ul>
           <div class="hero-tags">
             <span>AI</span>
@@ -82,8 +87,8 @@
       </div>
 
       <div class="hero-footer" aria-hidden="true">
-        <p>Systems Active</p>
-        <p>Academic Interface</p>
+        <p data-i18n="heroFooterLeft">Systems Active</p>
+        <p data-i18n="heroFooterRight">Academic Interface</p>
       </div>
     </section>
 
@@ -93,27 +98,22 @@
           <div class="section-head reveal reveal-left">
             <p class="section-no">01</p>
             <div>
-              <p class="kicker">About me</p>
-              <h2>研究者簡介</h2>
+              <p class="kicker" data-i18n="aboutKicker">About me</p>
+              <h2 data-i18n="aboutTitle">研究者簡介</h2>
             </div>
           </div>
 
           <div class="about-grid">
             <article class="panel reveal">
-              <p>
-                我是楊崎（Chi Yang），目前任職於長庚大學，專注於人工智慧、蛋白體學與質譜學交叉研究。
-                研究上聚焦於將機器學習方法導入生醫資料流程，提升蛋白質定量準確性與分析效率。
-              </p>
-              <p>
-                在教學與研究管理中，我重視可重現性與跨域協作，致力於建立可延續、可驗證、可轉譯的研究方法。
-              </p>
+              <p data-i18n="aboutBody1">我是楊崎（Chi Yang），目前任職於長庚大學，專注於人工智慧、蛋白體學與質譜學交叉研究。研究上聚焦於將機器學習方法導入生醫資料流程，提升蛋白質定量準確性與分析效率。</p>
+              <p data-i18n="aboutBody2">在教學與研究管理中，我重視可重現性與跨域協作，致力於建立可延續、可驗證、可轉譯的研究方法。</p>
             </article>
 
             <aside class="panel profile-panel reveal reveal-right" data-parallax="5">
-              <h3>Quick Profile</h3>
-              <p><strong>職稱：</strong>助理研究員</p>
-              <p><strong>專長：</strong>人工智慧、蛋白體、質譜學</p>
-              <p><strong>興趣：</strong>跑步、羽球、單車</p>
+              <h3 data-i18n="aboutQuickProfileTitle">Quick Profile</h3>
+              <p data-i18n-html="aboutQuickProfileRole"><strong>職稱：</strong>助理研究員</p>
+              <p data-i18n-html="aboutQuickProfileExpertise"><strong>專長：</strong>人工智慧、蛋白體、質譜學</p>
+              <p data-i18n-html="aboutQuickProfileHobbies"><strong>興趣：</strong>跑步、羽球、單車</p>
             </aside>
           </div>
         </div>
@@ -126,23 +126,23 @@
           <div class="section-head reveal reveal-left">
             <p class="section-no">02</p>
             <div>
-              <p class="kicker">Research interests</p>
-              <h2>研究興趣</h2>
+              <p class="kicker" data-i18n="interestsKicker">Research interests</p>
+              <h2 data-i18n="interestsTitle">研究興趣</h2>
             </div>
           </div>
 
           <div class="interest-grid">
             <article class="panel interest-card reveal" data-parallax="4">
-              <h3>人工智慧</h3>
-              <p>深度學習、強化學習與生成式方法，應用於生醫訊號與多維質譜資料分析。</p>
+              <h3 data-i18n="interestCard1Title">人工智慧</h3>
+              <p data-i18n="interestCard1Body">深度學習、強化學習與生成式方法，應用於生醫訊號與多維質譜資料分析。</p>
             </article>
             <article class="panel interest-card reveal" data-parallax="7">
-              <h3>蛋白體學</h3>
-              <p>以標靶蛋白體與生物標記開發為核心，建立可驗證且可落地的研究流程。</p>
+              <h3 data-i18n="interestCard2Title">蛋白體學</h3>
+              <p data-i18n="interestCard2Body">以標靶蛋白體與生物標記開發為核心，建立可驗證且可落地的研究流程。</p>
             </article>
             <article class="panel interest-card reveal" data-parallax="5">
-              <h3>質譜學</h3>
-              <p>聚焦 MRM/LC-MS 資料品質控管與 peak-picking 自動化，強化研究重現性。</p>
+              <h3 data-i18n="interestCard3Title">質譜學</h3>
+              <p data-i18n="interestCard3Body">聚焦 MRM/LC-MS 資料品質控管與 peak-picking 自動化，強化研究重現性。</p>
             </article>
           </div>
         </div>
@@ -155,8 +155,8 @@
           <div class="section-head reveal reveal-left">
             <p class="section-no">03</p>
             <div>
-              <p class="kicker">Publications / Projects</p>
-              <h2>代表論文與計畫</h2>
+              <p class="kicker" data-i18n="worksKicker">Publications / Projects</p>
+              <h2 data-i18n="worksTitle">代表論文與計畫</h2>
             </div>
           </div>
 
@@ -164,29 +164,29 @@
             <article class="panel work-card reveal">
               <p class="meta">2025 | PLoS Neglected Tropical Diseases</p>
               <h3>Enhancing Deinagkistrodon acutus antivenom potency through acutolysin A-targeted antibody supplementation</h3>
-              <p>參與毒蛇抗蛇毒血清效力提升研究，涵蓋蛋白體與分析化學協作。</p>
+              <p data-i18n="workCard1Body">參與毒蛇抗蛇毒血清效力提升研究，涵蓋蛋白體與分析化學協作。</p>
             </article>
 
             <article class="panel work-card reveal">
               <p class="meta">2024 | Analytical Chemistry</p>
               <h3>Systematic Evaluation of Chromatographic Peak Quality for Targeted Mass Spectrometry via Variational Autoencoder</h3>
-              <p>以變分自編碼器進行質譜峰品質判讀，降低人工檢視成本並提升準確度。</p>
+              <p data-i18n="workCard2Body">以變分自編碼器進行質譜峰品質判讀，降低人工檢視成本並提升準確度。</p>
             </article>
 
             <article class="panel work-card reveal">
               <p class="meta">2023 | Analytical Chemistry</p>
               <h3>HeapMS: An Automatic Peak-Picking Pipeline for Targeted Proteomic Data Powered by 2D Heatmap Transformation and CNN</h3>
-              <p>提出自動化峰值選取管線，結合 2D heatmap 與 CNN，提升蛋白體分析效率。</p>
+              <p data-i18n="workCard3Body">提出自動化峰值選取管線，結合 2D heatmap 與 CNN，提升蛋白體分析效率。</p>
             </article>
 
             <article class="panel work-card reveal">
-              <p class="meta">2025-2026 | 國科會計畫（PI）</p>
+              <p class="meta" data-i18n="workCard4Meta">2025-2026 | 國科會計畫（PI）</p>
               <h3>Applying Generative AI to Assist in Signature Peptide and Fragment Ion Selection for MRM Assay Development</h3>
-              <p>使用生成式 AI 協助 signature peptide 與 fragment ion 選擇，加速 assay 設計流程。</p>
+              <p data-i18n="workCard4Body">使用生成式 AI 協助 signature peptide 與 fragment ion 選擇，加速 assay 設計流程。</p>
             </article>
           </div>
 
-          <p class="note reveal">資料來源：Chang Gung University Academic Capacity Ensemble（Chi Yang Profile，擷取重點整理）。</p>
+          <p class="note reveal" data-i18n="worksNote">資料來源：Chang Gung University Academic Capacity Ensemble（Chi Yang Profile，擷取重點整理）。</p>
         </div>
       </div>
     </section>
@@ -197,18 +197,18 @@
           <div class="section-head reveal reveal-left">
             <p class="section-no">04</p>
             <div>
-              <p class="kicker">Contact</p>
-              <h2>聯絡方式</h2>
+              <p class="kicker" data-i18n="contactKicker">Contact</p>
+              <h2 data-i18n="contactTitle">聯絡方式</h2>
             </div>
           </div>
 
           <div class="panel contact-panel reveal reveal-right">
-            <p><strong>姓名：</strong>楊崎 Chi Yang</p>
-            <p><strong>職稱：</strong>助理研究員</p>
-            <p><strong>研究專長：</strong>人工智慧、蛋白體、質譜學</p>
-            <p><strong>興趣：</strong>跑步、羽球、單車</p>
-            <p><strong>Email：</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a></p>
-            <p><strong>辦公室：</strong>桃園市龜山區文化一路 259 號（示意）</p>
+            <p data-i18n-html="contactName"><strong>姓名：</strong>楊崎 Chi Yang</p>
+            <p data-i18n-html="contactRole"><strong>職稱：</strong>助理研究員</p>
+            <p data-i18n-html="contactExpertise"><strong>研究專長：</strong>人工智慧、蛋白體、質譜學</p>
+            <p data-i18n-html="contactHobbies"><strong>興趣：</strong>跑步、羽球、單車</p>
+            <p data-i18n-html="contactEmail"><strong>Email：</strong><a href="mailto:chiyang@example.edu.tw">chiyang@example.edu.tw</a></p>
+            <p data-i18n-html="contactOffice"><strong>辦公室：</strong>桃園市龜山區文化一路 259 號（示意）</p>
           </div>
         </div>
       </div>
@@ -217,8 +217,8 @@
 
   <footer class="site-footer">
     <div class="container footer-wrap">
-      <p>© <span id="year"></span> 楊崎 Chi Yang</p>
-      <a href="#top">Back to top</a>
+      <p>© <span id="year"></span> <span data-i18n="footerName">楊崎 Chi Yang</span></p>
+      <a href="#top" data-i18n="footerBackToTop">Back to top</a>
     </div>
   </footer>
 
