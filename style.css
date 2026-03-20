@@ -36,6 +36,12 @@ body {
   overflow-x: hidden;
 }
 
+html.stage-scroll-locked,
+body.stage-scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 #top {
   position: absolute;
   top: 0;

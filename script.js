@@ -109,10 +109,65 @@ if (hasGsapScroll) {
   let activeScanTimeline = null;
   let activeShell = null;
   let lastStageSwitchAt = -Infinity;
+  let isStageTransitioning = false;
 
-  const playScan = () => {
-    if (!scanOverlay) {
+  const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
+  const isEditableTarget = (target) => {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+    if (target.isContentEditable) {
+      return true;
+    }
+    const tagName = target.tagName;
+    return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+  };
+
+  const preventScrollWhileTransitioning = (event) => {
+    if (!isStageTransitioning) {
       return;
+    }
+
+    if (event.type === 'keydown') {
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+      if (!lockedScrollKeys.has(event.key)) {
+        return;
+      }
+    }
+
+    event.preventDefault();
+  };
+
+  window.addEventListener('wheel', preventScrollWhileTransitioning, { passive: false });
+  window.addEventListener('touchmove', preventScrollWhileTransitioning, { passive: false });
+  window.addEventListener('keydown', preventScrollWhileTransitioning);
+
+  const setStageScrollLock = (locked) => {
+    isStageTransitioning = locked;
+    document.body.classList.toggle('stage-scroll-locked', locked);
+    document.documentElement.classList.toggle('stage-scroll-locked', locked);
+  };
+
+  const alignShellToViewport = (shell) => {
+    const section = shell.closest('section');
+    if (!section) {
+      return;
+    }
+
+    const targetTop = Math.max(0, section.offsetTop);
+    if (Math.abs(window.scrollY - targetTop) > 2) {
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'auto',
+      });
+    }
+  };
+
+  const playScan = ({ withReturnSweep = false } = {}) => {
+    if (!scanOverlay) {
+      return Promise.resolve();
     }
 
     if (activeScanTimeline) {
@@ -122,38 +177,141 @@ if (hasGsapScroll) {
 
     gsap.killTweensOf([scanOverlay, ...scanLayers]);
 
-    activeScanTimeline = gsap.timeline({
-      onComplete: () => {
-        activeScanTimeline = null;
-      },
-    });
+    return new Promise((resolve) => {
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          activeScanTimeline = null;
+          resolve();
+        },
+      });
 
-    activeScanTimeline
-      .set(scanOverlay, {
-        autoAlpha: 1,
-        x: scanStartX,
-      }, 0)
-      .to(scanLayers, {
-        opacity: 0.88,
-        duration: 0.12,
-        ease: 'none',
-      }, 0)
-      .to(scanOverlay, {
-        x: scanEndX,
-        duration: 1.12,
-        ease: 'none',
-      }, 0.02)
-      .to(scanLayers, {
-        opacity: 0.52,
-        duration: 0.24,
-        ease: 'none',
-      }, 0.78)
-      .to(scanOverlay, {
-        autoAlpha: 0,
-        duration: 0.16,
-        ease: 'none',
-      }, 1.04);
+      activeScanTimeline = timeline;
+
+      if (withReturnSweep) {
+        timeline
+          .set(scanOverlay, {
+            autoAlpha: 1,
+            x: scanEndX,
+          }, 0)
+          .set(scanLayers, { opacity: 0.54 }, 0)
+          .to(scanLayers, {
+            opacity: 0.86,
+            duration: 0.08,
+            ease: 'none',
+          }, 0)
+          .to(scanOverlay, {
+            x: scanStartX,
+            duration: 0.24,
+            ease: 'power1.in',
+          }, 0)
+          .to(scanOverlay, {
+            x: scanEndX,
+            duration: 1.06,
+            ease: 'none',
+          }, 0.24)
+          .to(scanLayers, {
+            opacity: 0.52,
+            duration: 0.24,
+            ease: 'none',
+          }, 0.9)
+          .to(scanOverlay, {
+            autoAlpha: 0,
+            duration: 0.16,
+            ease: 'none',
+          }, 1.12);
+        return;
+      }
+
+      timeline
+        .set(scanOverlay, {
+          autoAlpha: 1,
+          x: scanStartX,
+        }, 0)
+        .to(scanLayers, {
+          opacity: 0.88,
+          duration: 0.12,
+          ease: 'none',
+        }, 0)
+        .to(scanOverlay, {
+          x: scanEndX,
+          duration: 1.06,
+          ease: 'none',
+        }, 0.02)
+        .to(scanLayers, {
+          opacity: 0.52,
+          duration: 0.24,
+          ease: 'none',
+        }, 0.74)
+        .to(scanOverlay, {
+          autoAlpha: 0,
+          duration: 0.16,
+          ease: 'none',
+        }, 0.98);
+    });
   };
+
+  const getRevealXOffset = (node) => (
+    node.classList.contains('reveal-right')
+      ? 50
+      : node.classList.contains('reveal-left')
+        ? -50
+        : 0
+  );
+
+  const resetShellState = (state) => {
+    gsap.killTweensOf([state.shell, ...state.horizontalDiag, ...state.vertical, ...state.revealItems]);
+    gsap.set(state.shell, {
+      opacity: 0.24,
+      y: 60,
+      clipPath: 'inset(0 100% 0 0)',
+      filter: 'brightness(0.84) saturate(0.92)',
+    });
+    gsap.set(state.horizontalDiag, { scaleX: 0, opacity: 0.95 });
+    gsap.set(state.vertical, { scaleY: 0, opacity: 0.95 });
+
+    state.revealItems.forEach((node) => {
+      gsap.set(node, {
+        opacity: 0,
+        x: getRevealXOffset(node),
+        y: 22,
+      });
+    });
+  };
+
+  const playShellReveal = (state) => new Promise((resolve) => {
+    gsap.timeline({
+      defaults: {
+        ease: 'power2.out',
+      },
+      onComplete: resolve,
+    })
+      .to(state.shell, {
+        opacity: 1,
+        y: 0,
+        clipPath: 'inset(0 0% 0 0)',
+        filter: 'brightness(1) saturate(1)',
+        duration: 1.2,
+      }, 0.16)
+      .to(state.horizontalDiag, {
+        scaleX: 1,
+        duration: 0.34,
+        stagger: 0.06,
+      }, 0.72)
+      .to(state.vertical, {
+        scaleY: 1,
+        duration: 0.32,
+        stagger: 0.07,
+      }, 0.78)
+      .to(state.revealItems, {
+        opacity: 1,
+        x: 0,
+        y: 0,
+        duration: 0.62,
+        stagger: 0.1,
+      }, 0.94);
+  });
+
+  const shellStateMap = new Map();
 
   if (scanOverlay) {
     gsap.set(scanOverlay, {
@@ -170,128 +328,70 @@ if (hasGsapScroll) {
     const vertical = shell.querySelectorAll('.geo-left, .geo-right');
 
     const state = {
+      shell,
       revealed: false,
       revealItems,
       horizontalDiag,
       vertical,
     };
 
-    gsap.set(shell, {
-      opacity: 0.24,
-      y: 60,
-      clipPath: 'inset(0 100% 0 0)',
-      filter: 'brightness(0.84) saturate(0.92)',
+    shellStateMap.set(shell, state);
+    resetShellState(state);
+  });
+
+  const activateShell = async (shell) => {
+    const state = shellStateMap.get(shell);
+    if (!state) {
+      return;
+    }
+
+    const now = performance.now();
+    if (activeShell === shell) {
+      return;
+    }
+    if (isStageTransitioning) {
+      return;
+    }
+    if (now - lastStageSwitchAt < 420) {
+      return;
+    }
+
+    lastStageSwitchAt = now;
+    activeShell = shell;
+
+    stageShells.forEach((node) => {
+      node.classList.toggle('stage-active', node === shell);
     });
-    gsap.set(horizontalDiag, { scaleX: 0, opacity: 0.95 });
-    gsap.set(vertical, { scaleY: 0, opacity: 0.95 });
 
-    revealItems.forEach((node) => {
-      const xOffset = node.classList.contains('reveal-right')
-        ? 50
-        : node.classList.contains('reveal-left')
-          ? -50
-          : 0;
+    alignShellToViewport(shell);
+    setStageScrollLock(true);
 
-      gsap.set(node, {
-        opacity: 0,
-        x: xOffset,
-        y: 22,
-      });
-    });
-
-    const activateShell = () => {
-      const now = performance.now();
-      if (activeShell === shell) {
-        return;
-      }
-      if (now - lastStageSwitchAt < 420) {
-        return;
+    try {
+      if (state.revealed) {
+        resetShellState(state);
+        await playScan({ withReturnSweep: true });
+      } else {
+        await playScan();
       }
 
-      lastStageSwitchAt = now;
-      activeShell = shell;
+      await playShellReveal(state);
+      state.revealed = true;
+    } finally {
+      setStageScrollLock(false);
+    }
+  };
 
-      stageShells.forEach((node) => {
-        node.classList.toggle('stage-active', node === shell);
-      });
-
-      playScan();
-
-      if (!state.revealed) {
-        state.revealed = true;
-
-        gsap.timeline({
-          defaults: {
-            ease: 'power2.out',
-          },
-        })
-          .to(shell, {
-            opacity: 1,
-            y: 0,
-            clipPath: 'inset(0 0% 0 0)',
-            filter: 'brightness(1) saturate(1)',
-            duration: 1.2,
-          }, 0.16)
-          .to(horizontalDiag, {
-            scaleX: 1,
-            duration: 0.34,
-            stagger: 0.06,
-          }, 0.72)
-          .to(vertical, {
-            scaleY: 1,
-            duration: 0.32,
-            stagger: 0.07,
-          }, 0.78)
-          .to(revealItems, {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            duration: 0.62,
-            stagger: 0.1,
-          }, 0.94);
-
-        return;
-      }
-
-      gsap.timeline({
-        defaults: {
-          ease: 'power2.out',
-        },
-      })
-        .to(shell, {
-          filter: 'brightness(0.95) saturate(0.96)',
-          duration: 0.1,
-        }, 0)
-        .to(shell, {
-          filter: 'brightness(1) saturate(1)',
-          duration: 0.22,
-        }, 0.1)
-        .fromTo(horizontalDiag, {
-          opacity: 0.42,
-          scaleX: 0.94,
-        }, {
-          opacity: 1,
-          scaleX: 1,
-          duration: 0.24,
-          stagger: 0.03,
-        }, 0.14)
-        .fromTo(vertical, {
-          opacity: 0.42,
-          scaleY: 0.9,
-        }, {
-          opacity: 1,
-          scaleY: 1,
-          duration: 0.22,
-          stagger: 0.04,
-        }, 0.16);
-    };
-
+  stageShells.forEach((shell) => {
     ScrollTrigger.create({
       trigger: shell,
       start: 'top 48%',
       end: 'bottom 48%',
-      onEnter: activateShell,
-      onEnterBack: activateShell,
+      onEnter: () => {
+        activateShell(shell);
+      },
+      onEnterBack: () => {
+        activateShell(shell);
+      },
     });
   });
 } else {
