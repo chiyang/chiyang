@@ -782,14 +782,7 @@ if (hasGsapScroll) {
     }
   };
 
-  const getShellIndex = (shell) => stageShellList.indexOf(shell);
-
   const getCurrentShellIndex = () => {
-    const activeIndex = getShellIndex(activeShell);
-    if (activeIndex >= 0) {
-      return activeIndex;
-    }
-
     if (stageShellList.length === 0) {
       return -1;
     }
@@ -960,6 +953,9 @@ if (hasGsapScroll) {
 
     const currentIndex = getCurrentShellIndex();
     if (currentIndex < 0) {
+      if (firstStageShell && activeShell && activeShell !== firstStageShell) {
+        activateShell(firstStageShell, { force: true });
+      }
       return;
     }
 
