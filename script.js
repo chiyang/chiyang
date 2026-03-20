@@ -454,11 +454,23 @@ if (hasGsapScroll) {
   let hideScrollHint = () => {};
   let lastObservedScrollTop = window.scrollY || window.pageYOffset || 0;
   let lastScrollDirection = 0;
+  let pendingDownwardShell = null;
+  let pendingDownwardFromShell = null;
+  let pendingDownwardStartScrollTop = -Infinity;
+  let pendingDownwardBottomReleaseReached = false;
+  let downwardStageSettleTimer = null;
 
-  const DOWNWARD_STAGE_TRIGGER_RATIO = 0.82;
+  const DOWNWARD_STAGE_TRIGGER_RATIO = 0.85;
   const UPWARD_STAGE_TRIGGER_RATIO = 0.15;
   const DEFAULT_STAGE_TRIGGER_RATIO = 0.42;
   const FIRST_STAGE_EARLY_SCROLL_RATIO = 0.4;
+  const DOWNWARD_STAGE_CONFIRM_DISTANCE = 72;
+  const LONG_STAGE_EXTRA_CONFIRM_RATIO = 0.07;
+  const MAX_DOWNWARD_STAGE_CONFIRM_DISTANCE = 180;
+  const LONG_STAGE_BOTTOM_BRAKE_OVERFLOW_RATIO = 0.2;
+  const LONG_STAGE_BOTTOM_RELEASE_RATIO = 0.18;
+  const DOWNWARD_STAGE_SETTLE_DELAY_MS = 140;
+  const EDGE_SETTLE_TOLERANCE = 12;
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
   const isEditableTarget = (target) => {
@@ -541,6 +553,94 @@ if (hasGsapScroll) {
     return Math.min(anchorActivationTop, earlyHeroActivationTop);
   };
 
+  const clearPendingDownwardStageSwitch = () => {
+    window.clearTimeout(downwardStageSettleTimer);
+    downwardStageSettleTimer = null;
+    pendingDownwardShell = null;
+    pendingDownwardFromShell = null;
+    pendingDownwardStartScrollTop = -Infinity;
+    pendingDownwardBottomReleaseReached = false;
+  };
+
+  const getShellIndex = (shell) => stageShellList.indexOf(shell);
+
+  const getDownwardStageConfirmDistance = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return DOWNWARD_STAGE_CONFIRM_DISTANCE;
+    }
+
+    const overflow = Math.max(0, section.offsetHeight - window.innerHeight);
+    const extraDistance = overflow * LONG_STAGE_EXTRA_CONFIRM_RATIO;
+
+    return Math.min(
+      MAX_DOWNWARD_STAGE_CONFIRM_DISTANCE,
+      DOWNWARD_STAGE_CONFIRM_DISTANCE + extraDistance
+    );
+  };
+
+  const needsDownwardStageBottomBrake = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return false;
+    }
+
+    const overflow = Math.max(0, section.offsetHeight - window.innerHeight);
+    return overflow > window.innerHeight * LONG_STAGE_BOTTOM_BRAKE_OVERFLOW_RATIO;
+  };
+
+  const hasReachedDownwardStageReleasePoint = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return true;
+    }
+
+    const remainingScroll = section.offsetTop + section.offsetHeight - (window.scrollY + window.innerHeight);
+    const releaseDistance = Math.max(24, window.innerHeight * LONG_STAGE_BOTTOM_RELEASE_RATIO);
+
+    return remainingScroll <= releaseDistance;
+  };
+
+  const shouldConfirmDownwardStageSwitch = (fromShell, toShell) => {
+    const fromIndex = getShellIndex(fromShell);
+    const toIndex = getShellIndex(toShell);
+
+    if (fromIndex < 0 || toIndex < 0 || toIndex <= fromIndex) {
+      clearPendingDownwardStageSwitch();
+      return true;
+    }
+
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const confirmDistance = getDownwardStageConfirmDistance(fromShell);
+    const requiresBottomBrake = needsDownwardStageBottomBrake(fromShell);
+    const hasReachedBottomRelease = hasReachedDownwardStageReleasePoint(fromShell);
+
+    if (pendingDownwardShell !== toShell || pendingDownwardFromShell !== fromShell) {
+      pendingDownwardShell = toShell;
+      pendingDownwardFromShell = fromShell;
+      pendingDownwardStartScrollTop = scrollTop;
+      pendingDownwardBottomReleaseReached = !requiresBottomBrake && hasReachedBottomRelease;
+      return false;
+    }
+
+    if (requiresBottomBrake && !pendingDownwardBottomReleaseReached) {
+      if (!hasReachedBottomRelease) {
+        return false;
+      }
+
+      pendingDownwardBottomReleaseReached = true;
+      pendingDownwardStartScrollTop = scrollTop;
+      return false;
+    }
+
+    if (scrollTop - pendingDownwardStartScrollTop < confirmDistance) {
+      return false;
+    }
+
+    clearPendingDownwardStageSwitch();
+    return true;
+  };
+
   const setTopNavigationGuard = (durationMs = 0) => {
     window.clearTimeout(topNavigationGuardTimer);
     topNavigationGuardTimer = null;
@@ -576,6 +676,150 @@ if (hasGsapScroll) {
         behavior: 'auto',
       });
     }
+  };
+
+  const getShellBottomViewportTop = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return null;
+    }
+
+    return Math.max(0, section.offsetTop + section.offsetHeight - window.innerHeight);
+  };
+
+  const getShellBottomOvershootFromViewport = (shell) => {
+    const targetTop = getShellBottomViewportTop(shell);
+    if (targetTop === null) {
+      return null;
+    }
+
+    return window.scrollY - targetTop;
+  };
+
+  const getShellTopOvershootFromViewport = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return null;
+    }
+
+    return section.offsetTop - window.scrollY;
+  };
+
+  const shouldSettleShellBottom = (shell) => {
+    const overshoot = getShellBottomOvershootFromViewport(shell);
+    if (overshoot === null) {
+      return false;
+    }
+
+    return overshoot > EDGE_SETTLE_TOLERANCE;
+  };
+
+  const shouldSettleShellTop = (shell) => {
+    const overshoot = getShellTopOvershootFromViewport(shell);
+    if (overshoot === null) {
+      return false;
+    }
+
+    return overshoot > EDGE_SETTLE_TOLERANCE;
+  };
+
+  const isViewportAboveFirstStage = () => {
+    if (!firstStageSection) {
+      return false;
+    }
+
+    const scrollTop = window.scrollY || window.pageYOffset || 0;
+    return scrollTop < firstStageSection.offsetTop - EDGE_SETTLE_TOLERANCE;
+  };
+
+  const shouldAutoNavigateToTopFromFirstStage = (shell) => (
+    Boolean(topTarget) &&
+    shell === firstStageShell &&
+    isViewportAboveFirstStage()
+  );
+
+  const alignShellBottomToViewport = (shell) => {
+    const targetTop = getShellBottomViewportTop(shell);
+    if (targetTop === null) {
+      return null;
+    }
+
+    if (Math.abs(window.scrollY - targetTop) > 2) {
+      suppressScrollTriggerUntil = Math.max(suppressScrollTriggerUntil, performance.now() + 240);
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'auto',
+      });
+    }
+
+    return targetTop;
+  };
+
+  const settleActiveShellEdge = (shell, direction) => {
+    downwardStageSettleTimer = null;
+
+    if (isProgrammaticNavigation || isStageTransitioning || isTopNavigationGuardActive()) {
+      return;
+    }
+
+    if (!shell || !activeShell || activeShell !== shell) {
+      return;
+    }
+
+    if (direction > 0) {
+      if (shell === lastStageShell) {
+        return;
+      }
+
+      if (!shouldSettleShellBottom(shell)) {
+        return;
+      }
+
+      const targetTop = alignShellBottomToViewport(shell);
+      if (targetTop === null) {
+        return;
+      }
+
+      if (pendingDownwardFromShell === shell) {
+        pendingDownwardStartScrollTop = targetTop;
+        pendingDownwardBottomReleaseReached = true;
+      }
+      return;
+    }
+
+    if (direction < 0) {
+      if (shouldAutoNavigateToTopFromFirstStage(shell)) {
+        queueCrossStageNavigation(topTarget);
+        return;
+      }
+
+      if (!shouldSettleShellTop(shell)) {
+        return;
+      }
+
+      suppressScrollTriggerUntil = Math.max(suppressScrollTriggerUntil, performance.now() + 240);
+      alignShellToViewport(shell);
+    }
+  };
+
+  const scheduleActiveShellEdgeSettle = () => {
+    window.clearTimeout(downwardStageSettleTimer);
+    downwardStageSettleTimer = null;
+
+    if (!activeShell || lastScrollDirection === 0) {
+      return;
+    }
+
+    if (lastScrollDirection > 0 && activeShell === lastStageShell) {
+      return;
+    }
+
+    const settleShell = activeShell;
+    const settleDirection = lastScrollDirection;
+
+    downwardStageSettleTimer = window.setTimeout(() => {
+      settleActiveShellEdge(settleShell, settleDirection);
+    }, DOWNWARD_STAGE_SETTLE_DELAY_MS);
   };
 
   const waitForShellAligned = (shell, { timeoutMs = 420, tolerance = 2 } = {}) => {
@@ -907,6 +1151,8 @@ if (hasGsapScroll) {
       return;
     }
 
+    clearPendingDownwardStageSwitch();
+
     if (isTopNavigationGuardActive()) {
       return;
     }
@@ -1141,7 +1387,7 @@ if (hasGsapScroll) {
     const isTopNavigation = targetSection === topTarget || targetSection === topAnchor;
     const targetShell = targetSection.querySelector('.stage-shell');
     const currentIndex = getCurrentShellIndex();
-    const currentShell = currentIndex >= 0 ? stageShellList[currentIndex] : null;
+    const currentShell = currentIndex >= 0 ? stageShellList[currentIndex] : activeShell;
     const targetState = targetShell ? shellStateMap.get(targetShell) : null;
     const currentState = currentShell ? shellStateMap.get(currentShell) : null;
 
@@ -1285,6 +1531,17 @@ if (hasGsapScroll) {
 
     const shell = getCurrentShellFromViewport();
     if (!shell) {
+      clearPendingDownwardStageSwitch();
+
+      if (
+        firstStageShell &&
+        activeShell === firstStageShell &&
+        lastScrollDirection < 0 &&
+        shouldAutoNavigateToTopFromFirstStage(firstStageShell)
+      ) {
+        return;
+      }
+
       if (firstStageShell && activeShell === firstStageShell) {
         const firstState = shellStateMap.get(firstStageShell);
         if (firstState) {
@@ -1303,10 +1560,23 @@ if (hasGsapScroll) {
 
     const state = shellStateMap.get(shell);
     if (shell === activeShell) {
+      clearPendingDownwardStageSwitch();
+
       if (force && state && !state.revealed) {
         activateShell(shell, { force: true });
       }
       return;
+    }
+
+    if (!force && activeShell && lastScrollDirection > 0) {
+      const activeIndex = getShellIndex(activeShell);
+      const targetIndex = getShellIndex(shell);
+
+      if (targetIndex > activeIndex && !shouldConfirmDownwardStageSwitch(activeShell, shell)) {
+        return;
+      }
+    } else {
+      clearPendingDownwardStageSwitch();
     }
 
     activateShell(shell, { force });
@@ -1336,6 +1606,7 @@ if (hasGsapScroll) {
         return;
       }
       ensureCurrentShellVisible();
+      scheduleActiveShellEdgeSettle();
     });
   };
 
