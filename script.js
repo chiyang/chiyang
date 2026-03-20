@@ -19,6 +19,14 @@ const hasGsapScroll =
   typeof window.gsap !== 'undefined' &&
   typeof window.ScrollTrigger !== 'undefined';
 
+const closeNavMenu = () => {
+  if (!navMenu || !navToggle) {
+    return;
+  }
+  navMenu.classList.remove('open');
+  navToggle.setAttribute('aria-expanded', 'false');
+};
+
 if (yearNode) {
   yearNode.textContent = new Date().getFullYear();
 }
@@ -38,16 +46,14 @@ if (navToggle && navMenu) {
 
   navLinks.forEach((link) => {
     link.addEventListener('click', () => {
-      navMenu.classList.remove('open');
-      navToggle.setAttribute('aria-expanded', 'false');
+      closeNavMenu();
     });
   });
 
   document.addEventListener('click', (event) => {
     const target = event.target;
     if (!navMenu.contains(target) && !navToggle.contains(target)) {
-      navMenu.classList.remove('open');
-      navToggle.setAttribute('aria-expanded', 'false');
+      closeNavMenu();
     }
   });
 }
@@ -55,16 +61,17 @@ if (navToggle && navMenu) {
 if (topLinks.length > 0) {
   topLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
+      if (hasGsapScroll) {
+        return;
+      }
+
       event.preventDefault();
       window.scrollTo({
         top: 0,
         behavior: prefersReducedMotion ? 'auto' : 'smooth',
       });
 
-      if (navMenu && navToggle) {
-        navMenu.classList.remove('open');
-        navToggle.setAttribute('aria-expanded', 'false');
-      }
+      closeNavMenu();
     });
   });
 }
@@ -102,6 +109,8 @@ if (hasGsapScroll) {
 
   const scanCore = scanOverlay ? scanOverlay.querySelector('.scan-core') : null;
   const scanLayers = scanCore ? [scanCore] : [];
+  const stageShellList = Array.from(stageShells);
+  const topSection = document.querySelector('main section#hero') || sections[0] || null;
 
   const scanStartX = '-2vw';
   const scanEndX = '102vw';
@@ -110,6 +119,8 @@ if (hasGsapScroll) {
   let activeShell = null;
   let lastStageSwitchAt = -Infinity;
   let isStageTransitioning = false;
+  let isProgrammaticNavigation = false;
+  let pendingNavigation = Promise.resolve();
 
   const lockedScrollKeys = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']);
   const isEditableTarget = (target) => {
@@ -199,19 +210,19 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanOverlay, {
           x: scanEndX,
-          duration: 0.78,
+          duration: 0.66,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
-          duration: 0.18,
+          duration: 0.14,
           ease: 'none',
-        }, 0.54)
+        }, 0.52)
         .to(scanOverlay, {
           autoAlpha: 0,
-          duration: 0.12,
+          duration: 0.08,
           ease: 'none',
-        }, 0.66);
+        }, 0.62);
     });
   };
 
@@ -219,7 +230,7 @@ if (hasGsapScroll) {
     if (!scanOverlay) {
       gsap.to(state.shell, {
         clipPath: 'inset(0 100% 0 0)',
-        duration: 0.52,
+        duration: 0.38,
         ease: 'none',
       });
       return Promise.resolve();
@@ -255,24 +266,24 @@ if (hasGsapScroll) {
         }, 0)
         .to(scanOverlay, {
           x: scanStartX,
-          duration: 0.52,
+          duration: 0.38,
           ease: 'none',
         }, 0)
         .to(state.shell, {
           clipPath: 'inset(0 100% 0 0)',
-          duration: 0.52,
+          duration: 0.38,
           ease: 'none',
         }, 0)
         .to(scanLayers, {
           opacity: 0.52,
-          duration: 0.14,
+          duration: 0.1,
           ease: 'none',
-        }, 0.34)
+        }, 0.24)
         .to(scanOverlay, {
           autoAlpha: 0,
-          duration: 0.12,
+          duration: 0.08,
           ease: 'none',
-        }, 0.42);
+        }, 0.3);
     });
   };
 
@@ -318,7 +329,7 @@ if (hasGsapScroll) {
     })
       .to(state.shell, {
         clipPath: 'inset(0 0% 0 0)',
-        duration: 0.78,
+        duration: 0.66,
         ease: 'none',
       }, 0)
       .to(state.shell, {
@@ -374,20 +385,20 @@ if (hasGsapScroll) {
     resetShellState(state);
   });
 
-  const activateShell = async (shell) => {
+  const activateShell = async (shell, { force = false } = {}) => {
     const state = shellStateMap.get(shell);
     if (!state) {
       return;
     }
 
     const now = performance.now();
-    if (activeShell === shell) {
+    if (activeShell === shell && !force) {
       return;
     }
     if (isStageTransitioning) {
       return;
     }
-    if (now - lastStageSwitchAt < 420) {
+    if (!force && now - lastStageSwitchAt < 420) {
       return;
     }
 
@@ -418,15 +429,162 @@ if (hasGsapScroll) {
     }
   };
 
+  const getShellIndex = (shell) => stageShellList.indexOf(shell);
+
+  const getCurrentShellIndex = () => {
+    const activeIndex = getShellIndex(activeShell);
+    if (activeIndex >= 0) {
+      return activeIndex;
+    }
+
+    if (stageShellList.length === 0) {
+      return -1;
+    }
+
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const firstSection = stageShellList[0].closest('section');
+    if (firstSection && scrollTop < firstSection.offsetTop - 8) {
+      return -1;
+    }
+
+    let nearestIndex = -1;
+    let nearestDistance = Infinity;
+
+    stageShellList.forEach((shell, index) => {
+      const section = shell.closest('section');
+      if (!section) {
+        return;
+      }
+
+      const distance = Math.abs(section.offsetTop - scrollTop);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    return nearestIndex;
+  };
+
+  const runCrossStageNavigation = async (targetSection) => {
+    if (!targetSection) {
+      return;
+    }
+
+    const targetShell = targetSection.querySelector('.stage-shell');
+    const currentIndex = getCurrentShellIndex();
+    const currentShell = currentIndex >= 0 ? stageShellList[currentIndex] : null;
+    const targetState = targetShell ? shellStateMap.get(targetShell) : null;
+    const currentState = currentShell ? shellStateMap.get(currentShell) : null;
+
+    isProgrammaticNavigation = true;
+    setStageScrollLock(true);
+
+    try {
+      if (!targetShell) {
+        if (currentState) {
+          await playReverseScanHide(currentState);
+          resetShellState(currentState);
+        }
+        stageShells.forEach((shell) => shell.classList.remove('stage-active'));
+        activeShell = null;
+        lastStageSwitchAt = performance.now();
+        window.scrollTo({
+          top: Math.max(0, targetSection.offsetTop),
+          behavior: 'auto',
+        });
+        return;
+      }
+
+      if (currentShell && currentShell !== targetShell && currentState) {
+        await playReverseScanHide(currentState);
+        resetShellState(currentState);
+      } else if (currentShell === targetShell && currentState) {
+        hideVisitedShellContentAtStart(currentState);
+        await playReverseScanHide(currentState);
+      }
+
+      if (!targetState) {
+        activeShell = targetShell;
+        alignShellToViewport(targetShell);
+        lastStageSwitchAt = performance.now();
+        return;
+      }
+
+      resetShellState(targetState);
+      stageShells.forEach((shell) => {
+        shell.classList.toggle('stage-active', shell === targetShell);
+      });
+      activeShell = targetShell;
+
+      alignShellToViewport(targetShell);
+
+      await Promise.all([
+        playScan(),
+        playShellReveal(targetState),
+      ]);
+
+      targetState.revealed = true;
+      lastStageSwitchAt = performance.now();
+    } finally {
+      setStageScrollLock(false);
+      isProgrammaticNavigation = false;
+    }
+  };
+
+  const queueCrossStageNavigation = (targetSection) => {
+    pendingNavigation = pendingNavigation
+      .catch(() => {})
+      .then(() => runCrossStageNavigation(targetSection));
+  };
+
+  navLinks.forEach((link) => {
+    const hash = link.getAttribute('href');
+    if (!hash || !hash.startsWith('#')) {
+      return;
+    }
+
+    link.addEventListener('click', (event) => {
+      const targetSection = hash === '#top'
+        ? topSection
+        : document.querySelector(`main ${hash}`);
+      if (!targetSection) {
+        return;
+      }
+
+      event.preventDefault();
+      closeNavMenu();
+      queueCrossStageNavigation(targetSection);
+    });
+  });
+
+  topLinks.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      if (!topSection) {
+        return;
+      }
+
+      event.preventDefault();
+      closeNavMenu();
+      queueCrossStageNavigation(topSection);
+    });
+  });
+
   stageShells.forEach((shell) => {
     ScrollTrigger.create({
       trigger: shell,
       start: 'top 48%',
       end: 'bottom 48%',
       onEnter: () => {
+        if (isProgrammaticNavigation) {
+          return;
+        }
         activateShell(shell);
       },
       onEnterBack: () => {
+        if (isProgrammaticNavigation) {
+          return;
+        }
         activateShell(shell);
       },
     });
