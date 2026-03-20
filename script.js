@@ -481,6 +481,35 @@ if (hasGsapScroll) {
     }
   };
 
+  const waitForShellAligned = (shell, { timeoutMs = 420, tolerance = 2 } = {}) => {
+    const section = shell.closest('section');
+    if (!section) {
+      return Promise.resolve();
+    }
+
+    const targetTop = Math.max(0, section.offsetTop);
+    const startedAt = performance.now();
+
+    return new Promise((resolve) => {
+      const checkAligned = () => {
+        const currentTop = window.scrollY || window.pageYOffset;
+        if (Math.abs(currentTop - targetTop) <= tolerance) {
+          resolve();
+          return;
+        }
+
+        if (performance.now() - startedAt >= timeoutMs) {
+          resolve();
+          return;
+        }
+
+        window.requestAnimationFrame(checkAligned);
+      };
+
+      window.requestAnimationFrame(checkAligned);
+    });
+  };
+
   const playScan = () => {
     if (!scanOverlay) {
       return Promise.resolve();
@@ -740,6 +769,9 @@ if (hasGsapScroll) {
         resetShellState(state);
       }
 
+      alignShellToViewport(shell);
+      await waitForShellAligned(shell);
+
       await Promise.all([
         playScan(),
         playShellReveal(state),
@@ -855,6 +887,7 @@ if (hasGsapScroll) {
       activeShell = targetShell;
 
       alignShellToViewport(targetShell);
+      await waitForShellAligned(targetShell);
 
       await Promise.all([
         playScan(),
