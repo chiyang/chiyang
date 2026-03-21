@@ -1359,6 +1359,8 @@ if (hasGsapScroll) {
   const scrollHintLabel = scrollHint.querySelector('.scroll-hint-label');
   let scrollHintDirection = '';
   let scrollHintHideTimer = null;
+  let lastTouchScrollHintY = null;
+  const TOUCH_SCROLL_HINT_THRESHOLD = 10;
 
   const hasScrollTargetInDirection = (direction) => {
     const currentShell = getCurrentShellFromViewport();
@@ -1420,6 +1422,45 @@ if (hasGsapScroll) {
     showScrollHint(event.deltaY > 0 ? 1 : -1);
   };
   window.addEventListener('wheel', handleScrollHintWheel, { passive: true });
+
+  const resetTouchScrollHintTracking = () => {
+    lastTouchScrollHintY = null;
+  };
+
+  const handleScrollHintTouchStart = (event) => {
+    if (event.touches.length !== 1) {
+      resetTouchScrollHintTracking();
+      return;
+    }
+
+    lastTouchScrollHintY = event.touches[0].clientY;
+  };
+
+  const handleScrollHintTouchMove = (event) => {
+    if (event.touches.length !== 1) {
+      resetTouchScrollHintTracking();
+      return;
+    }
+
+    const currentY = event.touches[0].clientY;
+    if (lastTouchScrollHintY === null) {
+      lastTouchScrollHintY = currentY;
+      return;
+    }
+
+    const deltaY = lastTouchScrollHintY - currentY;
+    if (Math.abs(deltaY) < TOUCH_SCROLL_HINT_THRESHOLD) {
+      return;
+    }
+
+    showScrollHint(deltaY > 0 ? 1 : -1);
+    lastTouchScrollHintY = currentY;
+  };
+
+  window.addEventListener('touchstart', handleScrollHintTouchStart, { passive: true });
+  window.addEventListener('touchmove', handleScrollHintTouchMove, { passive: true });
+  window.addEventListener('touchend', resetTouchScrollHintTracking, { passive: true });
+  window.addEventListener('touchcancel', resetTouchScrollHintTracking, { passive: true });
 
   const runCrossStageNavigation = async (targetSection) => {
     if (!targetSection) {
