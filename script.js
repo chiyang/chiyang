@@ -468,6 +468,7 @@ if (hasGsapScroll) {
   let pendingDownwardStartScrollTop = -Infinity;
   let pendingDownwardBottomReleaseReached = false;
   let downwardStageSettleTimer = null;
+  let deferredShellSyncTimer = null;
 
   const DOWNWARD_STAGE_TRIGGER_RATIO = 0.8;
   const UPWARD_STAGE_TRIGGER_RATIO = 0.15;
@@ -718,16 +719,20 @@ if (hasGsapScroll) {
   };
 
   const shouldSettleShellBottom = (shell) => {
-    if (pendingDownwardFromShell !== shell && !isShellNearDownwardSettleBoundary(shell)) {
-      return false;
-    }
-
     const overshoot = getShellBottomOvershootFromViewport(shell);
     if (overshoot === null) {
       return false;
     }
 
-    return Math.abs(overshoot) > EDGE_SETTLE_TOLERANCE;
+    if (overshoot > EDGE_SETTLE_TOLERANCE) {
+      return true;
+    }
+
+    if (pendingDownwardFromShell !== shell && !isShellNearDownwardSettleBoundary(shell)) {
+      return false;
+    }
+
+    return overshoot < -EDGE_SETTLE_TOLERANCE;
   };
 
   const shouldSettleShellTop = (shell) => {
@@ -836,6 +841,27 @@ if (hasGsapScroll) {
     downwardStageSettleTimer = window.setTimeout(() => {
       settleActiveShellEdge(settleShell, settleDirection);
     }, DOWNWARD_STAGE_SETTLE_DELAY_MS);
+  };
+
+  const scheduleDeferredShellSync = (delayMs = 24) => {
+    window.clearTimeout(deferredShellSyncTimer);
+
+    deferredShellSyncTimer = window.setTimeout(() => {
+      deferredShellSyncTimer = null;
+
+      if (isStartupSyncPending || isTopNavigationGuardActive() || isProgrammaticNavigation || isStageTransitioning) {
+        return;
+      }
+
+      const suppressRemaining = suppressScrollTriggerUntil - performance.now();
+      if (suppressRemaining > 0) {
+        scheduleDeferredShellSync(suppressRemaining + 24);
+        return;
+      }
+
+      ensureCurrentShellVisible();
+      scheduleActiveShellEdgeSettle();
+    }, Math.max(0, delayMs));
   };
 
   const waitForShellAligned = (shell, { timeoutMs = 420, tolerance = 2 } = {}) => {
@@ -1675,8 +1701,12 @@ if (hasGsapScroll) {
         return;
       }
       if (performance.now() < suppressScrollTriggerUntil) {
+        scheduleDeferredShellSync(suppressScrollTriggerUntil - performance.now() + 24);
         return;
       }
+
+      window.clearTimeout(deferredShellSyncTimer);
+      deferredShellSyncTimer = null;
       ensureCurrentShellVisible();
       scheduleActiveShellEdgeSettle();
     });
