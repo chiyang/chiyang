@@ -11,6 +11,7 @@ const parallaxNodes = document.querySelectorAll('[data-parallax]');
 const scanOverlay = document.querySelector('.scan-overlay');
 const topLinks = document.querySelectorAll('a[href="#top"]');
 const heroCtaLinks = document.querySelectorAll('.hero-actions a[href^="#"]');
+const stageJumpButtons = document.querySelectorAll('.section-jump-btn');
 const themeToggle = document.querySelector('.theme-toggle');
 const langToggle = document.querySelector('.lang-toggle');
 const i18nTextNodes = document.querySelectorAll('[data-i18n]');
@@ -96,6 +97,9 @@ const i18nDict = {
     scrollHintUp: '繼續往上捲動以顯示上一個區段',
     scrollHintDown: '繼續往下捲動以顯示下一個區段',
     footerBackToTop: '回到頂部',
+    stageNavTopAria: '切換到頂端區段',
+    stageNavUpAria: '切換到上一個區段',
+    stageNavDownAria: '切換到下一個區段',
   },
   en: {
     pageTitle: 'Chi Yang | Personal Academic Site',
@@ -170,6 +174,9 @@ const i18nDict = {
     scrollHintUp: 'Scroll up to reveal the previous section',
     scrollHintDown: 'Scroll down to reveal the next section',
     footerBackToTop: 'Back to top',
+    stageNavTopAria: 'Jump to the top section',
+    stageNavUpAria: 'Jump to the previous section',
+    stageNavDownAria: 'Jump to the next section',
   },
 };
 
@@ -178,6 +185,7 @@ let currentTheme = 'light';
 let hasManualTheme = false;
 let updateNavToggleAria = () => {};
 let refreshScrollHintText = () => {};
+let refreshStageJumpButtons = () => {};
 
 const getSaved = (key) => {
   try {
@@ -262,6 +270,7 @@ const applyLanguage = (lang, { persist = false } = {}) => {
   updateNavToggleAria(navMenu ? navMenu.classList.contains('open') : false);
   updateControlLabels();
   refreshScrollHintText();
+  refreshStageJumpButtons();
 
   if (persist) {
     setSaved(LANG_STORAGE_KEY, lang);
@@ -460,13 +469,15 @@ if (hasGsapScroll) {
   let pendingDownwardBottomReleaseReached = false;
   let downwardStageSettleTimer = null;
 
-  const DOWNWARD_STAGE_TRIGGER_RATIO = 0.85;
+  const DOWNWARD_STAGE_TRIGGER_RATIO = 0.8;
   const UPWARD_STAGE_TRIGGER_RATIO = 0.15;
   const DEFAULT_STAGE_TRIGGER_RATIO = 0.42;
   const FIRST_STAGE_EARLY_SCROLL_RATIO = 0.4;
   const DOWNWARD_STAGE_CONFIRM_DISTANCE = 56;
   const LONG_STAGE_BOTTOM_BRAKE_OVERFLOW_RATIO = 0.2;
   const LONG_STAGE_BOTTOM_RELEASE_RATIO = 0.18;
+  const LONG_STAGE_BOTTOM_SETTLE_GAP = 24;
+  const DOWNWARD_STAGE_SETTLE_REGION_RATIO = 0.3;
   const DOWNWARD_STAGE_SETTLE_DELAY_MS = 140;
   const EDGE_SETTLE_TOLERANCE = 12;
 
@@ -669,7 +680,8 @@ if (hasGsapScroll) {
       return null;
     }
 
-    return Math.max(0, section.offsetTop + section.offsetHeight - window.innerHeight);
+    const settleGap = needsDownwardStageBottomBrake(shell) ? LONG_STAGE_BOTTOM_SETTLE_GAP : 0;
+    return Math.max(0, section.offsetTop + section.offsetHeight - window.innerHeight + settleGap);
   };
 
   const getShellBottomOvershootFromViewport = (shell) => {
@@ -679,6 +691,21 @@ if (hasGsapScroll) {
     }
 
     return window.scrollY - targetTop;
+  };
+
+  const isShellNearDownwardSettleBoundary = (shell) => {
+    const section = shell ? shell.closest('section') : null;
+    if (!section) {
+      return false;
+    }
+
+    const remainingScroll = section.offsetTop + section.offsetHeight - (window.scrollY + window.innerHeight);
+    const settleDistance = Math.max(
+      DOWNWARD_STAGE_CONFIRM_DISTANCE * 2,
+      window.innerHeight * DOWNWARD_STAGE_SETTLE_REGION_RATIO
+    );
+
+    return remainingScroll <= settleDistance;
   };
 
   const getShellTopOvershootFromViewport = (shell) => {
@@ -691,12 +718,16 @@ if (hasGsapScroll) {
   };
 
   const shouldSettleShellBottom = (shell) => {
+    if (pendingDownwardFromShell !== shell && !isShellNearDownwardSettleBoundary(shell)) {
+      return false;
+    }
+
     const overshoot = getShellBottomOvershootFromViewport(shell);
     if (overshoot === null) {
       return false;
     }
 
-    return overshoot > EDGE_SETTLE_TOLERANCE;
+    return Math.abs(overshoot) > EDGE_SETTLE_TOLERANCE;
   };
 
   const shouldSettleShellTop = (shell) => {
@@ -1509,6 +1540,60 @@ if (hasGsapScroll) {
     });
   });
 
+  const getStageJumpTarget = (button) => {
+    const direction = button.dataset.stageDirection;
+    const shell = button.closest('.section-head')?.closest('.stage-shell') || null;
+    const shellIndex = getShellIndex(shell);
+
+    if (shellIndex < 0) {
+      return null;
+    }
+
+    if (direction === 'up') {
+      return shellIndex === 0
+        ? topTarget
+        : stageShellList[shellIndex - 1]?.closest('section') || null;
+    }
+
+    if (direction === 'down') {
+      return stageShellList[shellIndex + 1]?.closest('section') || null;
+    }
+
+    return null;
+  };
+
+  refreshStageJumpButtons = () => {
+    const dict = getCurrentDict();
+
+    stageJumpButtons.forEach((button) => {
+      const targetSection = getStageJumpTarget(button);
+      const direction = button.dataset.stageDirection;
+      const label = direction === 'up' && targetSection === topTarget
+        ? dict.stageNavTopAria
+        : direction === 'up'
+          ? dict.stageNavUpAria
+          : dict.stageNavDownAria;
+
+      button.disabled = !targetSection;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    });
+  };
+
+  stageJumpButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const targetSection = getStageJumpTarget(button);
+      if (!targetSection || button.disabled) {
+        return;
+      }
+
+      closeNavMenu();
+      queueCrossStageNavigation(targetSection);
+    });
+  });
+
+  refreshStageJumpButtons();
+
   const ensureCurrentShellVisible = ({ allowTopFallback = true, force = false } = {}) => {
     if (isProgrammaticNavigation || isStageTransitioning || isTopNavigationGuardActive()) {
       return;
@@ -1545,7 +1630,9 @@ if (hasGsapScroll) {
 
     const state = shellStateMap.get(shell);
     if (shell === activeShell) {
-      clearPendingDownwardStageSwitch();
+      if (!(lastScrollDirection > 0 && pendingDownwardFromShell === shell)) {
+        clearPendingDownwardStageSwitch();
+      }
 
       if (force && state && !state.revealed) {
         activateShell(shell, { force: true });
