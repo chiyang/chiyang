@@ -1360,7 +1360,9 @@ if (hasGsapScroll) {
   let scrollHintDirection = '';
   let scrollHintHideTimer = null;
   let lastTouchScrollHintY = null;
+  let touchScrollHintActiveUntil = -Infinity;
   const TOUCH_SCROLL_HINT_THRESHOLD = 10;
+  const TOUCH_SCROLL_HINT_ACTIVE_WINDOW_MS = 560;
 
   const hasScrollTargetInDirection = (direction) => {
     const currentShell = getCurrentShellFromViewport();
@@ -1391,7 +1393,7 @@ if (hasGsapScroll) {
   };
 
   const showScrollHint = (direction) => {
-    if (isStageTransitioning || isProgrammaticNavigation || isStartupSyncPending || isTopNavigationGuardActive()) {
+    if (isStageTransitioning || isProgrammaticNavigation || isTopNavigationGuardActive()) {
       hideScrollHint();
       return;
     }
@@ -1427,12 +1429,17 @@ if (hasGsapScroll) {
     lastTouchScrollHintY = null;
   };
 
+  const markTouchScrollHintActivity = () => {
+    touchScrollHintActiveUntil = performance.now() + TOUCH_SCROLL_HINT_ACTIVE_WINDOW_MS;
+  };
+
   const handleScrollHintTouchStart = (event) => {
     if (event.touches.length !== 1) {
       resetTouchScrollHintTracking();
       return;
     }
 
+    markTouchScrollHintActivity();
     lastTouchScrollHintY = event.touches[0].clientY;
   };
 
@@ -1444,6 +1451,7 @@ if (hasGsapScroll) {
 
     const currentY = event.touches[0].clientY;
     if (lastTouchScrollHintY === null) {
+      markTouchScrollHintActivity();
       lastTouchScrollHintY = currentY;
       return;
     }
@@ -1453,6 +1461,7 @@ if (hasGsapScroll) {
       return;
     }
 
+    markTouchScrollHintActivity();
     showScrollHint(deltaY > 0 ? 1 : -1);
     lastTouchScrollHintY = currentY;
   };
@@ -1727,6 +1736,10 @@ if (hasGsapScroll) {
 
     if (isTopNavigationGuardActive()) {
       return;
+    }
+
+    if (performance.now() < touchScrollHintActiveUntil && lastScrollDirection !== 0) {
+      showScrollHint(lastScrollDirection);
     }
 
     if (syncShellRaf !== null) {
